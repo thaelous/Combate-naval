@@ -1,0 +1,8 @@
+{
+  "name": "Remix Tactical Naval War Room",
+  "description": "Immersive single-file web game featuring high-fidelity SVG naval vessels and dynamic, atmospheric tactical combat environments.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

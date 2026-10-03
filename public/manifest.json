@@ -1,0 +1,32 @@
+{
+  "id": "/",
+  "name": "Combate Naval Táctico — War Room",
+  "short_name": "CombateNaval",
+  "description": "Simulador de guerra naval táctica de alta tecnología con gráficos vectoriales pseudo-3D, balística en tiempo real, audio procedural y multijugador en sala.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "theme_color": "#040d1a",
+  "background_color": "#040d1a",
+  "icons": [
+    {
+      "src": "/pwa-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/pwa-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/pwa-maskable-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
