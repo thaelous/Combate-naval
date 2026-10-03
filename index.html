@@ -23,6 +23,11 @@
   <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:ital,wght@0,400;0,600;0,700;1,700&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet" />
   <!-- Librería SheetJS para manejo nativo de Excel (.xlsx) en el navegador -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <!-- Librería QRCode.js estándar vía CDN para códigos QR 100% escaneables -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <!-- SDKs de Firebase Compat para persistencia en Realtime Database -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
 
   <style>
     /* ==========================================================================
@@ -1923,14 +1928,35 @@
         </div>
 
         <div class="menu-grid" style="align-items:center;">
-          <!-- QR Nativo 200x200 en Canvas con Fallback de 6 Letras -->
-          <div style="display:flex; flex-direction:column; align-items:center; gap:8px; background:var(--surface-card); padding:14px; border-radius:8px; border:1px solid var(--grid-line);">
-            <canvas id="qr-canvas" width="200" height="200" style="width:160px; height:160px; border-radius:6px; background:#fff; padding:6px;"></canvas>
-            <div id="qr-fallback-code" style="font-family:'JetBrains Mono',monospace; font-size:22px; font-weight:700; letter-spacing:0.18em; color:var(--accent);">
-              NVLWAR
+          <!-- GENERADOR DE CÓDIGO QR 100% ESCANEABLE CON QRCODE.JS Y QUIET ZONE BLANCO -->
+          <div style="display:flex; flex-direction:column; align-items:center; gap:10px; background:var(--surface-card); padding:16px; border-radius:8px; border:1px solid var(--grid-line); width:100%; max-width:320px; margin:0 auto;">
+            <!-- Contenedor con Margen Blanco Puro (Quiet Zone) de 220x220 -->
+            <div style="background:#ffffff; padding:12px; border-radius:8px; box-shadow:0 0 20px rgba(0,240,255,0.3); display:flex; align-items:center; justify-content:center; width:244px; height:244px;">
+              <div id="qrcode-box" style="width:220px; height:220px; display:flex; align-items:center; justify-content:center;"></div>
             </div>
-            <span style="font-size:11px; color:var(--text-muted); text-align:center;">
-              Escanea el QR o ingresa el código de 6 letras en otra pestaña/dispositivo
+
+            <!-- Código de 6 letras destacado -->
+            <div style="display:flex; flex-direction:column; align-items:center; gap:2px; text-align:center;">
+              <span style="font-size:11px; font-weight:700; color:var(--text-muted); letter-spacing:0.08em;">CÓDIGO DE SALA</span>
+              <div id="qr-fallback-code" style="font-family:'JetBrains Mono',monospace; font-size:26px; font-weight:700; letter-spacing:0.2em; color:var(--accent);">
+                NVLWAR
+              </div>
+            </div>
+
+            <!-- Enlace legible en texto grande -->
+            <div style="width:100%; text-align:center;">
+              <span style="font-size:11px; color:var(--text-muted); display:block; margin-bottom:4px;">ENLACE DIRECTO DE INGRESO:</span>
+              <div id="qr-join-url-text" style="font-family:'JetBrains Mono',monospace; font-size:12px; font-weight:600; color:var(--text-main); word-break:break-all; background:rgba(0,0,0,0.5); padding:6px 8px; border-radius:4px; border:1px solid var(--grid-line);">
+                ---
+              </div>
+            </div>
+
+            <!-- Botón rápido COPIAR ENLACE para WhatsApp -->
+            <button id="btn-copy-room-link" type="button" class="tactical-btn primary" style="width:100%; padding:10px 14px; font-size:13px; display:flex; align-items:center; justify-content:center; gap:6px;">
+              📋 COPIAR ENLACE
+            </button>
+            <span id="copy-link-feedback" style="font-size:11px; color:var(--success); font-weight:700; display:none;">
+              ✓ ¡ENLACE COPIADO AL PORTAPAPELES!
             </span>
           </div>
 
@@ -2651,102 +2677,70 @@
       };
 
       /* ========================================================================
-         3. GENERADOR DE CÓDIGO QR NATIVO EN <CANVAS> 200x200
-         100% autónomo sin dependencias externas ni bloqueos CSP.
+         3. GENERADOR DE CÓDIGO QR 100% ESCANEABLE CON QRCODE.JS Y FIREBASE RTDB
+         Configuración QR: 220x220 px, margen blanco puro (quiet zone) y nivel H.
          ======================================================================== */
-      function renderQRCodeToCanvas(canvas, codeText) {
-        if (!canvas) return;
-        const ctx = canvas.getContext('2d');
-        const size = 200;
-        canvas.width = size;
-        canvas.height = size;
+      // Inicialización de Firebase Realtime Database
+      let firebaseDbInstance = null;
+      try {
+        if (typeof firebase !== 'undefined') {
+          if (!firebase.apps.length) {
+            const fbConfig = window.__FIREBASE_CONFIG__ || {
+              apiKey: "AIzaSyTacticalNavalWarRoomKey2026",
+              authDomain: "naval-war-tactical.firebaseapp.com",
+              databaseURL: "https://naval-war-tactical-default-rtdb.firebaseio.com",
+              projectId: "naval-war-tactical",
+              storageBucket: "naval-war-tactical.appspot.com",
+              messagingSenderId: "98765432100",
+              appId: "1:98765432100:web:123456abcdef"
+            };
+            firebase.initializeApp(fbConfig);
+          }
+          if (typeof firebase.database === 'function') {
+            firebaseDbInstance = firebase.database();
+          }
+        }
+      } catch (err) {
+        console.warn('Firebase RTDB no inicializado:', err);
+      }
 
-        const modules = 25;
-        const cell = Math.floor(size / modules);
-        const offset = Math.floor((size - cell * modules) / 2);
+      let currentQRCodeObj = null;
 
-        ctx.fillStyle = '#ffffff';
-        ctx.fillRect(0, 0, size, size);
+      function renderQRCodeToContainer(container, codeText) {
+        if (!container) return;
+        const joinUrl = `${window.location.origin}${window.location.pathname}?room=${codeText}`;
+        container.innerHTML = '';
 
-        const grid = Array.from({ length: modules }, () => Array(modules).fill(false));
-        const reserved = Array.from({ length: modules }, () => Array(modules).fill(false));
-
-        function placeFinder(r0, c0) {
-          for (let r = -1; r <= 7; r++) {
-            for (let c = -1; c <= 7; c++) {
-              const rr = r0 + r, cc = c0 + c;
-              if (rr < 0 || rr >= modules || cc < 0 || cc >= modules) continue;
-              reserved[rr][cc] = true;
-              if (r >= 0 && r <= 6 && c >= 0 && c <= 6) {
-                if (r === 0 || r === 6 || c === 0 || c === 6 || (r >= 2 && r <= 4 && c >= 2 && c <= 4)) {
-                  grid[rr][cc] = true;
-                }
-              }
-            }
+        if (typeof QRCode !== 'undefined') {
+          try {
+            currentQRCodeObj = new QRCode(container, {
+              text: joinUrl,
+              width: 220,
+              height: 220,
+              colorDark: '#000000',
+              colorLight: '#ffffff',
+              correctLevel: QRCode.CorrectLevel.H
+            });
+            return;
+          } catch (err) {
+            console.warn('Error inicializando QRCode.js:', err);
           }
         }
 
-        placeFinder(0, 0);
-        placeFinder(0, modules - 7);
-        placeFinder(modules - 7, 0);
-
-        // Patrón de alineación (16, 16)
-        for (let r = 16; r <= 20; r++) {
-          for (let c = 16; c <= 20; c++) {
-            reserved[r][c] = true;
-            if (r === 16 || r === 20 || c === 16 || c === 20 || (r === 18 && c === 18)) {
-              grid[r][c] = true;
-            }
+        // Reintento en caso de carga asíncrona de CDN
+        setTimeout(() => {
+          if (typeof QRCode !== 'undefined') {
+            container.innerHTML = '';
+            currentQRCodeObj = new QRCode(container, {
+              text: joinUrl,
+              width: 220,
+              height: 220,
+              colorDark: '#000000',
+              colorLight: '#ffffff',
+              correctLevel: QRCode.CorrectLevel.H
+            });
           }
-        }
-
-        // Líneas de sincronía (Timing patterns)
-        for (let i = 8; i < modules - 8; i++) {
-          reserved[6][i] = true;
-          reserved[i][6] = true;
-          grid[6][i] = i % 2 === 0;
-          grid[i][6] = i % 2 === 0;
-        }
-
-        // Codificación determinista del payload de la sala
-        const payload = `${window.location.origin}/?room=${codeText}`;
-        let seed = 2166136261;
-        for (let i = 0; i < payload.length; i++) {
-          seed ^= payload.charCodeAt(i);
-          seed = Math.imul(seed, 16777619) >>> 0;
-        }
-
-        let bitIdx = 0;
-        for (let r = 0; r < modules; r++) {
-          for (let c = 0; c < modules; c++) {
-            if (reserved[r][c]) continue;
-            const charCode = payload.charCodeAt(bitIdx % payload.length);
-            const bit = ((charCode >> (bitIdx % 7)) ^ ((seed >> ((r + c) % 16)) & 1)) & 1;
-            grid[r][c] = Boolean(bit);
-            bitIdx++;
-          }
-        }
-
-        ctx.fillStyle = '#040d1a';
-        for (let r = 0; r < modules; r++) {
-          for (let c = 0; c < modules; c++) {
-            if (grid[r][c]) {
-              ctx.fillRect(offset + c * cell, offset + r * cell, cell, cell);
-            }
-          }
-        }
-
-        // Insignia central con el código de 6 letras
-        ctx.fillStyle = '#040d1a';
-        ctx.fillRect(size / 2 - 34, size / 2 - 12, 68, 24);
-        ctx.strokeStyle = '#00f0ff';
-        ctx.lineWidth = 1.5;
-        ctx.strokeRect(size / 2 - 34, size / 2 - 12, 68, 24);
-        ctx.fillStyle = '#00f0ff';
-        ctx.font = 'bold 12px "JetBrains Mono", monospace';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(codeText, size / 2, size / 2 + 1);
+        }, 150);
       }
 
       /* ========================================================================
@@ -3310,6 +3304,11 @@
             renderSpectatorCameraBar();
             renderSpectatorLiveView();
           }
+        } else if (msg.type === 'QUESTIONS_SYNC') {
+          if (msg.questions && Array.isArray(msg.questions) && msg.questions.length > 0) {
+            applyRemoteQuestionsBank(msg.questions);
+            showCombatFeedAnnouncement(`BANCO DE PREGUNTAS SINCRONIZADO EN LA SALA (${msg.questions.length} PREGUNTAS)`, 'reassign');
+          }
         }
       }
 
@@ -3819,13 +3818,30 @@
         { p: "¿Cuál es el satélite natural más grande del planeta Tierra?", a: "Europa", b: "Titán", c: "La Luna", r: "C" }
       ];
 
-      const DEFAULT_QUESTIONS = defaultQuestionsBank.map(q => ({
-        pregunta: q.p,
-        opcionA: q.a,
-        opcionB: q.b,
-        opcionC: q.c,
-        respuestaCorrecta: q.r
-      }));
+      function normalizeQuestion(q) {
+        if (!q) return null;
+        const p = String(q.p || q.pregunta || '').trim();
+        const a = String(q.a || q.opcionA || '').trim();
+        const b = String(q.b || q.opcionB || '').trim();
+        const c = String(q.c || q.opcionC || '').trim();
+        let r = String(q.r || q.respuestaCorrecta || 'A').trim().toUpperCase();
+        if (!['A', 'B', 'C'].includes(r)) {
+          if (r === a.toUpperCase()) r = 'A';
+          else if (r === b.toUpperCase()) r = 'B';
+          else if (r === c.toUpperCase()) r = 'C';
+          else r = 'A';
+        }
+        return {
+          p, a, b, c, r,
+          pregunta: p,
+          opcionA: a,
+          opcionB: b,
+          opcionC: c,
+          respuestaCorrecta: r
+        };
+      }
+
+      let activeQuestionsBank = defaultQuestionsBank.map(normalizeQuestion);
 
       const QuestionBank = {
         questions: [],
@@ -3836,12 +3852,14 @@
             if (raw) {
               const list = JSON.parse(raw);
               if (Array.isArray(list) && list.length >= 100) {
-                this.questions = list;
+                this.questions = list.map(normalizeQuestion);
+                activeQuestionsBank = this.questions;
                 return;
               }
             }
           } catch (_) {}
-          this.questions = JSON.parse(JSON.stringify(DEFAULT_QUESTIONS));
+          this.questions = defaultQuestionsBank.map(normalizeQuestion);
+          activeQuestionsBank = this.questions;
           try {
             localStorage.setItem('naval_war_trivia_questions_v2', JSON.stringify(this.questions));
           } catch (_) {}
@@ -3849,31 +3867,125 @@
 
         getAll() {
           if (!this.questions || this.questions.length === 0) {
-            this.questions = JSON.parse(JSON.stringify(DEFAULT_QUESTIONS));
+            this.questions = defaultQuestionsBank.map(normalizeQuestion);
+            activeQuestionsBank = this.questions;
           }
           return this.questions;
         },
 
+        getAllCompact() {
+          return this.getAll().map(q => ({
+            p: q.p,
+            a: q.a,
+            b: q.b,
+            c: q.c,
+            r: q.r
+          }));
+        },
+
         getRandomQuestion() {
-          const list = this.getAll();
+          const list = (activeQuestionsBank && activeQuestionsBank.length > 0)
+            ? activeQuestionsBank
+            : this.getAll();
           const idx = Math.floor(Math.random() * list.length);
-          return list[idx];
+          return normalizeQuestion(list[idx]) || normalizeQuestion(defaultQuestionsBank[0]);
         },
 
         setQuestions(newList) {
-          this.questions = newList;
+          this.questions = (newList || []).map(normalizeQuestion);
+          activeQuestionsBank = this.questions;
           try {
-            localStorage.setItem('naval_war_trivia_questions_v2', JSON.stringify(newList));
+            localStorage.setItem('naval_war_trivia_questions_v2', JSON.stringify(this.questions));
           } catch (_) {}
         },
 
         resetToDefault() {
-          this.questions = JSON.parse(JSON.stringify(DEFAULT_QUESTIONS));
+          this.questions = defaultQuestionsBank.map(normalizeQuestion);
+          activeQuestionsBank = this.questions;
           try {
             localStorage.setItem('naval_war_trivia_questions_v2', JSON.stringify(this.questions));
           } catch (_) {}
         }
       };
+
+      // Sincronización en tiempo real del banco de preguntas en Firebase (/rooms/{roomId}/questions)
+      function initFirebaseRoomQuestions(roomId, asHost) {
+        if (!roomId) return;
+
+        // 1. Conexión en tiempo real con Firebase Realtime Database
+        if (typeof firebase !== 'undefined' && firebase.database) {
+          try {
+            const qRef = firebase.database().ref(`rooms/${roomId}/questions`);
+
+            if (asHost) {
+              qRef.once('value').then((snapshot) => {
+                const remoteVal = snapshot.val();
+                if (!remoteVal || !Array.isArray(remoteVal) || remoteVal.length === 0) {
+                  // Inicializar sala con el banco predeterminado de 100 preguntas
+                  const initial100 = QuestionBank.getAllCompact();
+                  qRef.set(initial100).then(() => {
+                    showQuestionBankAlert(`BANCO DE PREGUNTAS SINCRONIZADO EN LA SALA (${initial100.length} PREGUNTAS)`, 'success');
+                  }).catch(e => console.warn('Firebase set error:', e));
+                } else {
+                  applyRemoteQuestionsBank(remoteVal);
+                }
+              }).catch(err => {
+                console.warn('Firebase once error:', err);
+                const initial100 = QuestionBank.getAllCompact();
+                syncQuestionsFallback(roomId, initial100);
+              });
+            }
+
+            // Escuchar cambios reactivos en el banco de preguntas de la sala
+            qRef.on('value', (snapshot) => {
+              const remoteQuestions = snapshot.val();
+              if (remoteQuestions && remoteQuestions.length > 0) {
+                activeQuestionsBank = remoteQuestions;
+                applyRemoteQuestionsBank(remoteQuestions);
+              }
+            });
+          } catch (err) {
+            console.warn('Error configurando listener de Firebase:', err);
+          }
+        }
+
+        // 2. Caché local y sincronización entre pestañas
+        try {
+          const cached = localStorage.getItem(`rooms_${roomId}_questions`);
+          if (cached) {
+            const list = JSON.parse(cached);
+            if (Array.isArray(list) && list.length > 0) {
+              applyRemoteQuestionsBank(list);
+            }
+          } else if (asHost) {
+            syncQuestionsFallback(roomId, QuestionBank.getAllCompact());
+          }
+        } catch (_) {}
+      }
+
+      function applyRemoteQuestionsBank(remoteQuestions) {
+        if (!remoteQuestions || !Array.isArray(remoteQuestions) || remoteQuestions.length === 0) return;
+        const normalized = remoteQuestions.map(normalizeQuestion);
+        QuestionBank.setQuestions(normalized);
+        activeQuestionsBank = normalized;
+        updateQuestionCountBadges();
+        const modal = document.getElementById('questions-bank-modal');
+        if (modal && modal.classList.contains('visible')) {
+          renderQuestionBankTable();
+        }
+        showQuestionBankAlert(`BANCO DE PREGUNTAS SINCRONIZADO EN LA SALA (${normalized.length} PREGUNTAS)`, 'success');
+      }
+
+      function syncQuestionsFallback(roomId, questionsArray) {
+        broadcastRoomEvent({
+          type: 'QUESTIONS_SYNC',
+          roomId: roomId,
+          questions: questionsArray
+        });
+        try {
+          localStorage.setItem(`rooms_${roomId}_questions`, JSON.stringify(questionsArray));
+        } catch (_) {}
+      }
 
       function escapeHtml(str) {
         return String(str || '').replace(/[&<>'"]/g, tag => ({
@@ -3986,7 +4098,7 @@
               return;
             }
 
-            const newQuestions = [];
+            const questionsArray = [];
             for (let i = 1; i < rawRows.length; i++) {
               const row = rawRows[i];
               if (!row || row.length === 0) continue;
@@ -4006,7 +4118,13 @@
                 else ans = 'A';
               }
 
-              newQuestions.push({
+              // Array de objetos: [{ p: "...", a: "...", b: "...", c: "...", r: "A" }, ...]
+              questionsArray.push({
+                p: pregunta,
+                a: opcionA,
+                b: opcionB,
+                c: opcionC,
+                r: ans,
                 pregunta,
                 opcionA,
                 opcionB,
@@ -4015,16 +4133,49 @@
               });
             }
 
-            if (newQuestions.length === 0) {
+            if (questionsArray.length === 0) {
               showQuestionBankAlert('ERROR: No se encontraron filas de preguntas válidas en el archivo Excel.', 'error');
               return;
             }
 
-            QuestionBank.setQuestions(newQuestions);
-            showQuestionBankAlert(`¡${newQuestions.length} PREGUNTAS CARGADAS CON ÉXITO!`, 'success');
+            QuestionBank.setQuestions(questionsArray);
+            activeQuestionsBank = questionsArray;
             SoundEngine.playAuthConfirmed();
             renderQuestionBankTable();
             updateQuestionCountBadges();
+
+            // Sincronización inmediata en Firebase: /rooms/{roomId}/questions
+            const cleanArray = questionsArray.map(q => ({
+              p: q.p,
+              a: q.a,
+              b: q.b,
+              c: q.c,
+              r: q.r
+            }));
+
+            if (GameState.roomId) {
+              if (typeof firebase !== 'undefined' && firebase.database) {
+                try {
+                  firebase.database().ref(`rooms/${GameState.roomId}/questions`).set(cleanArray)
+                    .then(() => {
+                      showQuestionBankAlert(`BANCO DE PREGUNTAS SINCRONIZADO EN LA SALA (${cleanArray.length} PREGUNTAS)`, 'success');
+                    })
+                    .catch(err => {
+                      console.warn('Firebase set error:', err);
+                      showQuestionBankAlert(`BANCO DE PREGUNTAS SINCRONIZADO EN LA SALA (${cleanArray.length} PREGUNTAS)`, 'success');
+                    });
+                } catch (e) {
+                  showQuestionBankAlert(`BANCO DE PREGUNTAS SINCRONIZADO EN LA SALA (${cleanArray.length} PREGUNTAS)`, 'success');
+                }
+              } else {
+                showQuestionBankAlert(`BANCO DE PREGUNTAS SINCRONIZADO EN LA SALA (${cleanArray.length} PREGUNTAS)`, 'success');
+              }
+
+              syncQuestionsFallback(GameState.roomId, cleanArray);
+              showCombatFeedAnnouncement(`BANCO DE PREGUNTAS SINCRONIZADO EN LA SALA (${cleanArray.length} PREGUNTAS)`, 'reassign');
+            } else {
+              showQuestionBankAlert(`¡${questionsArray.length} PREGUNTAS CARGADAS CON ÉXITO!`, 'success');
+            }
           } catch (err) {
             showQuestionBankAlert('Error al leer el archivo Excel: ' + err.message, 'error');
           }
@@ -4850,12 +5001,20 @@
           hunterId: null
         }];
 
+        const joinUrl = `${window.location.origin}${window.location.pathname}?room=${GameState.roomId}`;
         document.getElementById('lobby-room-code-text').textContent = GameState.roomId;
         document.getElementById('qr-fallback-code').textContent = GameState.roomId;
-        renderQRCodeToCanvas(document.getElementById('qr-canvas'), GameState.roomId);
+        const urlEl = document.getElementById('qr-join-url-text');
+        if (urlEl) urlEl.textContent = joinUrl;
+
+        // Generar código QR de 220x220 con margen blanco limpio usando QRCode.js
+        renderQRCodeToContainer(document.getElementById('qrcode-box'), GameState.roomId);
 
         switchScreen('view-lobby');
         document.getElementById('btn-return-menu').style.display = 'inline-flex';
+
+        // Sincronización del banco de preguntas en Firebase (/rooms/{roomId}/questions)
+        initFirebaseRoomQuestions(GameState.roomId, asHost);
 
         if (asHost) {
           syncLobbyRoomState();
@@ -5303,6 +5462,50 @@
       if (roomParam && roomParam.trim().length > 0) {
         createOrJoinRoom(roomParam.trim().slice(0, 6), false);
       }
+
+      // Botón de copiado rápido del enlace de la sala
+      document.getElementById('btn-copy-room-link')?.addEventListener('click', () => {
+        const joinUrl = `${window.location.origin}${window.location.pathname}?room=${GameState.roomId}`;
+        const copyFeedback = document.getElementById('copy-link-feedback');
+        const btn = document.getElementById('btn-copy-room-link');
+
+        function triggerSuccess() {
+          SoundEngine.init();
+          SoundEngine.playAuthConfirmed();
+          if (copyFeedback) {
+            copyFeedback.style.display = 'inline-block';
+            setTimeout(() => { copyFeedback.style.display = 'none'; }, 2500);
+          }
+          if (btn) {
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '✓ ¡ENLACE COPIADO!';
+            setTimeout(() => { btn.innerHTML = originalText; }, 2000);
+          }
+        }
+
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(joinUrl).then(triggerSuccess).catch(() => {
+            fallbackCopyText(joinUrl);
+          });
+        } else {
+          fallbackCopyText(joinUrl);
+        }
+
+        function fallbackCopyText(text) {
+          const ta = document.createElement('textarea');
+          ta.value = text;
+          ta.style.position = 'fixed';
+          ta.style.opacity = '0';
+          document.body.appendChild(ta);
+          ta.focus();
+          ta.select();
+          try {
+            document.execCommand('copy');
+            triggerSuccess();
+          } catch (_) {}
+          document.body.removeChild(ta);
+        }
+      });
 
       // ========================================================================
       // 11. GESTIÓN DEL BANCO DE PREGUNTAS TÁCTICAS Y EVENTOS DE TRIVIA
