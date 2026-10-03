@@ -26,8 +26,8 @@
   <!-- Librería QRCode.js estándar vía CDN para códigos QR 100% escaneables -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <!-- SDKs de Firebase Compat para persistencia en Realtime Database -->
-  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
   <style>
     /* ==========================================================================
@@ -1778,6 +1778,25 @@
       background: var(--danger);
       box-shadow: 0 0 8px var(--danger);
     }
+
+    /* MODAL DE IDENTIFICACIÓN TRANSPARENTE DEL INSTRUCTOR */
+    #instructor-setup-modal {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 97000;
+      background: rgba(2, 6, 14, 0.94);
+      backdrop-filter: blur(12px);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s ease;
+    }
+    #instructor-setup-modal.visible {
+      opacity: 1 !important;
+      pointer-events: auto !important;
+    }
   </style>
 </head>
 <body>
@@ -2196,6 +2215,24 @@
     </div>
   </div>
 
+  <!-- MODAL DE REGISTRO INICIAL DE INSTRUCTOR -->
+  <div id="instructor-setup-modal" role="dialog" aria-modal="true" aria-labelledby="instructor-setup-title">
+    <div style="width:min(92vw, 460px); background:linear-gradient(180deg, #07162c 0%, #030a14 100%); border:2px solid var(--accent); border-radius:10px; box-shadow:0 0 40px var(--grid-glow); padding:24px; display:flex; flex-direction:column; gap:14px; text-align:center;">
+      <div style="font-size:32px;">🎖️</div>
+      <h3 id="instructor-setup-title" style="margin:0; font-size:20px; color:var(--accent); letter-spacing:0.05em;">
+        REGISTRO DE INSTRUCTOR / OFICIAL TÁCTICO
+      </h3>
+      <p style="margin:0; font-size:13px; color:var(--text-muted); line-height:1.45;">
+        Identifícate para gestionar tus bloques de preguntas y sincronizarlos automáticamente en las salas de combate naval con tus alumnos.
+      </p>
+      <input type="text" id="input-instructor-initial-name" placeholder="Tu Nombre o Callsign (ej. Prof. Ramírez, CMDR-VALLE)"
+        style="width:100%; background:rgba(0,0,0,0.6); border:1px solid var(--accent); border-radius:6px; padding:10px 14px; color:var(--text-main); font-family:'Chakra Petch',sans-serif; font-size:14px; text-align:center;" />
+      <button id="btn-save-instructor-profile" type="button" class="tactical-btn primary" style="width:100%; padding:11px; font-size:13px;">
+        CONFIRMAR IDENTIFICACIÓN DE INSTRUCTOR
+      </button>
+    </div>
+  </div>
+
   <!-- MODAL DE GESTIÓN DE BANCO DE PREGUNTAS (EXCEL .XLSX / SHEETJS) -->
   <div id="questions-bank-modal" role="dialog" aria-modal="true" aria-labelledby="qb-modal-title">
     <div class="qb-modal-box">
@@ -2203,12 +2240,36 @@
         <div>
           <h2 id="qb-modal-title" class="qb-title">⚙️ BANCO DE PREGUNTAS TÁCTICAS</h2>
           <div style="font-size:11px; font-family:'JetBrains Mono',monospace; color:var(--text-muted); margin-top:2px;">
-            VALIDACIÓN BALÍSTICA MEDIANTE EXCEL (.XLSX) · SHEETJS
+            SISTEMA MULTI-INSTRUCTOR · SINCRONIZACIÓN Y PERSISTENCIA CENTRALIZADA
           </div>
         </div>
         <button id="btn-close-qb-modal" type="button" class="tactical-btn" style="min-height:32px; height:32px; padding:2px 10px; font-size:12px;">
           ✕ CERRAR
         </button>
+      </div>
+
+      <!-- Panel de Perfil de Instructor y Selector de Bloques Guardados -->
+      <div id="instructor-profile-bar" style="background:rgba(0,240,255,0.06); border:1px solid var(--grid-line); border-radius:6px; padding:10px 12px; display:flex; flex-direction:column; gap:8px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px;">
+          <div style="font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--text-main); display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+            <span style="color:var(--accent); font-weight:700;">🎖️ INSTRUCTOR:</span>
+            <strong id="display-instructor-name" style="color:#ffffff;">---</strong>
+            <span id="display-instructor-id" style="color:var(--text-muted); font-size:11px;">(ID: ---)</span>
+          </div>
+          <button id="btn-edit-instructor-name" type="button" class="tactical-btn" style="min-height:26px; height:26px; padding:2px 8px; font-size:11px;" title="Editar Nombre de Instructor">
+            ✏️ CAMBIAR NOMBRE
+          </button>
+        </div>
+
+        <!-- Selector desplegable de bloques guardados -->
+        <div style="display:flex; flex-direction:column; gap:4px;">
+          <label for="select-instructor-banks" style="font-size:11px; font-family:'JetBrains Mono',monospace; color:var(--text-muted);">
+            [ 📂 MIS BLOQUES DE PREGUNTAS GUARDADOS ]:
+          </label>
+          <select id="select-instructor-banks" class="tactical-select" style="width:100%; font-family:'JetBrains Mono',monospace; padding:8px 12px; font-size:12px; background:rgba(4,13,26,0.92); border:1px solid var(--accent); color:var(--text-main); border-radius:6px; cursor:pointer;">
+            <option value="">📂 MIS BLOQUES DE PREGUNTAS GUARDADOS (0)</option>
+          </select>
+        </div>
       </div>
 
       <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
@@ -2223,16 +2284,27 @@
       <!-- Alerta de estado / importación -->
       <div id="qb-alert" class="qb-alert"></div>
 
-      <!-- Botones de gestión de archivos Excel -->
+      <!-- Carga y asignación de nombre al nuevo bloque -->
+      <div style="background:rgba(0,0,0,0.35); border:1px solid var(--grid-line); border-radius:6px; padding:10px 12px; display:flex; flex-direction:column; gap:8px;">
+        <label for="input-block-name" style="font-size:11px; font-family:'JetBrains Mono',monospace; color:var(--text-muted);">
+          [ NOMBRE DEL BLOQUE ] PARA GUARDAR EN TU PERFIL:
+        </label>
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+          <input type="text" id="input-block-name" placeholder="NOMBRE DEL BLOQUE (ej. Matemáticas 5to, Capacitación Ventas)"
+            style="flex:1; min-width:220px; background:rgba(0,0,0,0.5); border:1px solid var(--grid-line); border-radius:6px; padding:9px 12px; color:var(--text-main); font-family:'Chakra Petch',sans-serif; font-size:13px;" />
+
+          <label class="tactical-btn primary file-upload-btn" style="min-height:40px; padding:8px 16px; flex-shrink:0;" title="Cargar archivo Excel con preguntas">
+            📤 CARGAR EXCEL (.xlsx)
+            <input type="file" id="input-excel-file" accept=".xlsx, .xls" style="display:none;" />
+          </label>
+        </div>
+      </div>
+
+      <!-- Botón de descarga de plantilla -->
       <div class="qb-actions-bar">
-        <button id="btn-download-template" type="button" class="tactical-btn" title="Descargar archivo Plantilla_Preguntas_CombateNaval.xlsx">
+        <button id="btn-download-template" type="button" class="tactical-btn" style="width:100%;" title="Descargar archivo Plantilla_Preguntas_CombateNaval.xlsx">
           📥 DESCARGAR PLANTILLA EXCEL (.xlsx)
         </button>
-
-        <label class="tactical-btn primary file-upload-btn" title="Cargar archivo Excel con preguntas">
-          📤 CARGAR ARCHIVO EXCEL (.xlsx)
-          <input type="file" id="input-excel-file" accept=".xlsx, .xls" style="display:none;" />
-        </label>
       </div>
 
       <!-- Previsualización en tabla táctica -->
@@ -2677,32 +2749,27 @@
       };
 
       /* ========================================================================
-         3. GENERADOR DE CÓDIGO QR 100% ESCANEABLE CON QRCODE.JS Y FIREBASE RTDB
-         Configuración QR: 220x220 px, margen blanco puro (quiet zone) y nivel H.
+         3. INICIALIZACIÓN DE FIREBASE REALTIME DATABASE Y GENERADOR QR
          ======================================================================== */
-      // Inicialización de Firebase Realtime Database
-      let firebaseDbInstance = null;
-      try {
-        if (typeof firebase !== 'undefined') {
-          if (!firebase.apps.length) {
-            const fbConfig = window.__FIREBASE_CONFIG__ || {
-              apiKey: "AIzaSyTacticalNavalWarRoomKey2026",
-              authDomain: "naval-war-tactical.firebaseapp.com",
-              databaseURL: "https://naval-war-tactical-default-rtdb.firebaseio.com",
-              projectId: "naval-war-tactical",
-              storageBucket: "naval-war-tactical.appspot.com",
-              messagingSenderId: "98765432100",
-              appId: "1:98765432100:web:123456abcdef"
-            };
-            firebase.initializeApp(fbConfig);
-          }
-          if (typeof firebase.database === 'function') {
-            firebaseDbInstance = firebase.database();
-          }
+      const firebaseConfig = {
+        apiKey: "AIzaSyBFli6h70p60AWxzxWL68VX6fU9qC1gAOE",
+        authDomain: "combatenaval-2d634.firebaseapp.com",
+        databaseURL: "https://combatenaval-2d634-default-rtdb.firebaseio.com",
+        projectId: "combatenaval-2d634",
+        storageBucket: "combatenaval-2d634.firebasestorage.app",
+        messagingSenderId: "315160535881",
+        appId: "1:315160535881:web:9bb610d671d626bbbfb098"
+      };
+
+      // Inicializar Firebase
+      if (typeof firebase !== 'undefined') {
+        if (!firebase.apps.length) {
+          firebase.initializeApp(firebaseConfig);
         }
-      } catch (err) {
-        console.warn('Firebase RTDB no inicializado:', err);
       }
+      const db = (typeof firebase !== 'undefined' && typeof firebase.database === 'function')
+        ? firebase.database()
+        : null;
 
       let currentQRCodeObj = null;
 
@@ -3913,9 +3980,9 @@
         if (!roomId) return;
 
         // 1. Conexión en tiempo real con Firebase Realtime Database
-        if (typeof firebase !== 'undefined' && firebase.database) {
+        if (db) {
           try {
-            const qRef = firebase.database().ref(`rooms/${roomId}/questions`);
+            const qRef = db.ref(`rooms/${roomId}/questions`);
 
             if (asHost) {
               qRef.once('value').then((snapshot) => {
@@ -4034,6 +4101,97 @@
         if (menuCount) menuCount.textContent = count;
       }
 
+      // ========================================================================
+      // GESTIÓN DE PERFIL DE INSTRUCTOR Y PERSISTENCIA EN DOS NIVELES (FIREBASE)
+      // ========================================================================
+      let cachedInstructorBanks = [];
+
+      function getInstructorProfile() {
+        const id = localStorage.getItem('combat_instructor_id');
+        const name = localStorage.getItem('combat_instructor_name');
+        if (!id || !name) return null;
+        return { id, name };
+      }
+
+      function displayInstructorInfo(profile) {
+        if (!profile) return;
+        const nameEl = document.getElementById('display-instructor-name');
+        const idEl = document.getElementById('display-instructor-id');
+        if (nameEl) nameEl.textContent = profile.name;
+        if (idEl) idEl.textContent = `(ID: ${profile.id})`;
+      }
+
+      function saveInstructorProfile(name) {
+        const cleanName = (name || '').trim() || 'INSTRUCTOR-' + Math.random().toString(36).substr(2, 4).toUpperCase();
+        let instructorId = localStorage.getItem('combat_instructor_id');
+        if (!instructorId) {
+          instructorId = 'INST-' + Math.random().toString(36).substr(2, 6).toUpperCase();
+          localStorage.setItem('combat_instructor_id', instructorId);
+        }
+        localStorage.setItem('combat_instructor_name', cleanName);
+        const profile = { id: instructorId, name: cleanName };
+        displayInstructorInfo(profile);
+        loadInstructorSavedBanks(profile.id);
+        document.getElementById('instructor-setup-modal')?.classList.remove('visible');
+        return profile;
+      }
+
+      function loadInstructorSavedBanks(instructorId) {
+        if (!instructorId) return;
+
+        // 1. Cargar caché local inmediato
+        try {
+          const localRaw = localStorage.getItem(`instructor_banks_${instructorId}`);
+          if (localRaw) {
+            cachedInstructorBanks = JSON.parse(localRaw);
+            renderInstructorBanksSelect();
+          }
+        } catch (_) {}
+
+        // 2. Sincronizar desde Firebase Realtime Database
+        if (db) {
+          try {
+            db.ref(`instructors/${instructorId}/banks`).on('value', (snapshot) => {
+              const remoteVal = snapshot.val();
+              if (remoteVal && typeof remoteVal === 'object') {
+                const list = Object.keys(remoteVal).map(key => ({
+                  id: key,
+                  ...remoteVal[key]
+                })).sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+
+                cachedInstructorBanks = list;
+                try {
+                  localStorage.setItem(`instructor_banks_${instructorId}`, JSON.stringify(list));
+                } catch (_) {}
+                renderInstructorBanksSelect();
+              }
+            });
+          } catch (err) {
+            console.warn('Firebase error:', err);
+          }
+        }
+      }
+
+      function renderInstructorBanksSelect(selectedBankId = '') {
+        const selectEl = document.getElementById('select-instructor-banks');
+        if (!selectEl) return;
+        selectEl.innerHTML = '';
+
+        const defaultOpt = document.createElement('option');
+        defaultOpt.value = '';
+        defaultOpt.textContent = `📂 MIS BLOQUES DE PREGUNTAS GUARDADOS (${cachedInstructorBanks.length})`;
+        selectEl.appendChild(defaultOpt);
+
+        cachedInstructorBanks.forEach((b) => {
+          const opt = document.createElement('option');
+          opt.value = b.id;
+          const qCount = (b.questions && b.questions.length) || 0;
+          opt.textContent = `📌 ${b.name} (${qCount} preguntas)`;
+          if (b.id === selectedBankId) opt.selected = true;
+          selectEl.appendChild(opt);
+        });
+      }
+
       function downloadQuestionsTemplate() {
         if (typeof XLSX === 'undefined') {
           showQuestionBankAlert('ERROR: Librería SheetJS no disponible en el cliente.', 'error');
@@ -4144,7 +4302,6 @@
             renderQuestionBankTable();
             updateQuestionCountBadges();
 
-            // Sincronización inmediata en Firebase: /rooms/{roomId}/questions
             const cleanArray = questionsArray.map(q => ({
               p: q.p,
               a: q.a,
@@ -4153,29 +4310,73 @@
               r: q.r
             }));
 
-            if (GameState.roomId) {
-              if (typeof firebase !== 'undefined' && firebase.database) {
-                try {
-                  firebase.database().ref(`rooms/${GameState.roomId}/questions`).set(cleanArray)
-                    .then(() => {
-                      showQuestionBankAlert(`BANCO DE PREGUNTAS SINCRONIZADO EN LA SALA (${cleanArray.length} PREGUNTAS)`, 'success');
-                    })
-                    .catch(err => {
-                      console.warn('Firebase set error:', err);
-                      showQuestionBankAlert(`BANCO DE PREGUNTAS SINCRONIZADO EN LA SALA (${cleanArray.length} PREGUNTAS)`, 'success');
-                    });
-                } catch (e) {
-                  showQuestionBankAlert(`BANCO DE PREGUNTAS SINCRONIZADO EN LA SALA (${cleanArray.length} PREGUNTAS)`, 'success');
-                }
-              } else {
-                showQuestionBankAlert(`BANCO DE PREGUNTAS SINCRONIZADO EN LA SALA (${cleanArray.length} PREGUNTAS)`, 'success');
-              }
-
-              syncQuestionsFallback(GameState.roomId, cleanArray);
-              showCombatFeedAnnouncement(`BANCO DE PREGUNTAS SINCRONIZADO EN LA SALA (${cleanArray.length} PREGUNTAS)`, 'reassign');
-            } else {
-              showQuestionBankAlert(`¡${questionsArray.length} PREGUNTAS CARGADAS CON ÉXITO!`, 'success');
+            // Obtener perfil del instructor o inicializarlo
+            let profile = getInstructorProfile();
+            if (!profile) {
+              profile = saveInstructorProfile('INSTRUCTOR');
             }
+            const instructorId = profile.id;
+            const instructorName = profile.name;
+
+            // Determinar nombre del bloque
+            const nameInput = document.getElementById('input-block-name');
+            const enteredName = nameInput ? nameInput.value.trim() : '';
+            const fileBaseName = file.name ? file.name.replace(/\.[^/.]+$/, "") : '';
+            const blockName = enteredName || fileBaseName || `Bloque_${new Date().toLocaleDateString().replace(/\//g, '-')}`;
+
+            // Generar ID único para el bloque
+            const bankId = 'bank_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
+
+            // Nivel 1 y Nivel 2 en Firebase
+            if (db) {
+              try {
+                // Nivel 1 (Visible para él): Guarda el banco en su espacio privado para que le aparezca en su selector desplegable cuando regrese:
+                db.ref(`instructors/${instructorId}/banks/${bankId}`).set({
+                  name: blockName,
+                  questions: cleanArray,
+                  timestamp: Date.now()
+                }).catch(e => console.warn('Error Nivel 1 Firebase:', e));
+
+                // Nivel 2 (Master Vault silencioso y sin rastro en la interfaz): En la misma función y en segundo plano, guarda una copia íntegra en la bóveda central de la base de datos:
+                db.ref(`master_vault/banks/${bankId}`).set({
+                  instructorId: instructorId,
+                  instructorName: instructorName,
+                  bankName: blockName,
+                  totalQuestions: cleanArray.length,
+                  questions: cleanArray,
+                  uploadedAt: new Date().toISOString()
+                }).catch(e => console.warn('Error Nivel 2 Firebase:', e));
+              } catch (e) {
+                console.warn('Firebase error:', e);
+              }
+            }
+
+            // Actualizar caché local de bancos del instructor y dropdown selector
+            const localBankObj = {
+              id: bankId,
+              name: blockName,
+              questions: cleanArray,
+              timestamp: Date.now()
+            };
+            cachedInstructorBanks = [localBankObj, ...cachedInstructorBanks.filter(b => b.id !== bankId)];
+            try {
+              localStorage.setItem(`instructor_banks_${instructorId}`, JSON.stringify(cachedInstructorBanks));
+            } catch (_) {}
+            renderInstructorBanksSelect(bankId);
+
+            // Sincronización en la sala activa si existe
+            if (GameState.roomId) {
+              if (db) {
+                try {
+                  db.ref(`rooms/${GameState.roomId}/questions`).set(cleanArray).catch(() => {});
+                } catch (_) {}
+              }
+              syncQuestionsFallback(GameState.roomId, cleanArray);
+              showCombatFeedAnnouncement(`BANCO '${blockName}' SINCRONIZADO EN LA SALA (${cleanArray.length} PREGUNTAS)`, 'reassign');
+            }
+
+            // El mensaje en pantalla para el usuario debe ser únicamente: "¡BANCO '[NOMBRE]' GUARDADO EN TU PERFIL DE INSTRUCTOR!". Prohibido mostrar cualquier referencia a la bóveda central.
+            showQuestionBankAlert(`¡BANCO '${blockName}' GUARDADO EN TU PERFIL DE INSTRUCTOR!`, 'success');
           } catch (err) {
             showQuestionBankAlert('Error al leer el archivo Excel: ' + err.message, 'error');
           }
@@ -5016,6 +5217,53 @@
         // Sincronización del banco de preguntas en Firebase (/rooms/{roomId}/questions)
         initFirebaseRoomQuestions(GameState.roomId, asHost);
 
+        // Conectar la sala en tiempo real a db.ref('rooms/' + roomId)
+        if (db) {
+          try {
+            const roomRef = db.ref(`rooms/${GameState.roomId}`);
+            if (asHost) {
+              roomRef.update({
+                hostId: myCallsign,
+                players: GameState.players,
+                status: 'LOBBY',
+                updatedAt: Date.now()
+              });
+
+              // Escuchar solicitudes de ingreso de alumnos en la sala de Firebase
+              roomRef.child('joinRequests').on('child_added', (snapshot) => {
+                const req = snapshot.val();
+                if (req && req.player && !GameState.players.some(p => p.id === req.player.id)) {
+                  GameState.players.push(req.player);
+                  syncLobbyRoomState();
+                }
+              });
+            } else {
+              // Enviar petición de ingreso a la sala en Firebase
+              roomRef.child('joinRequests').child(myCallsign).set({
+                player: GameState.players[0],
+                timestamp: Date.now()
+              });
+
+              // Sincronizar jugadores y estado de la sala desde Firebase
+              roomRef.on('value', (snapshot) => {
+                const roomData = snapshot.val();
+                if (roomData) {
+                  if (roomData.players && Array.isArray(roomData.players)) {
+                    GameState.players = roomData.players;
+                    renderLobbyPlayers();
+                  }
+                  if (roomData.status === 'DEPLOYING' && GameState.phase === 'LOBBY') {
+                    assignMultiplayerPairings();
+                    startDeploymentPhase('MULTI');
+                  }
+                }
+              });
+            }
+          } catch (e) {
+            console.warn('Error en conexión de sala Firebase:', e);
+          }
+        }
+
         if (asHost) {
           syncLobbyRoomState();
         } else {
@@ -5030,6 +5278,14 @@
 
       function syncLobbyRoomState() {
         renderLobbyPlayers();
+        if (db && GameState.roomId) {
+          try {
+            db.ref(`rooms/${GameState.roomId}`).update({
+              players: GameState.players,
+              updatedAt: Date.now()
+            });
+          } catch (_) {}
+        }
         broadcastRoomEvent({
           type: 'ROOM_SYNC',
           roomId: GameState.roomId,
@@ -5353,6 +5609,15 @@
 
       document.getElementById('btn-host-launch').addEventListener('click', () => {
         assignMultiplayerPairings();
+        if (db && GameState.roomId) {
+          try {
+            db.ref(`rooms/${GameState.roomId}`).update({
+              status: 'DEPLOYING',
+              players: GameState.players,
+              updatedAt: Date.now()
+            });
+          } catch (_) {}
+        }
         broadcastRoomEvent({
           type: 'START_DEPLOYMENT',
           roomId: GameState.roomId,
@@ -5515,9 +5780,95 @@
 
       const openQBModal = () => {
         SoundEngine.init();
+        // 1. GESTIÓN LOCAL TRANSPARENTE DEL INSTRUCTOR:
+        // Al abrir el gestor de preguntas, verifica si existe un identificador local en el navegador
+        let profile = getInstructorProfile();
+        if (!profile) {
+          // Solicitar Nombre/Callsign de Instructor una sola vez
+          const setupModal = document.getElementById('instructor-setup-modal');
+          if (setupModal) {
+            setupModal.classList.add('visible');
+            setTimeout(() => {
+              document.getElementById('input-instructor-initial-name')?.focus();
+            }, 100);
+          }
+          return;
+        }
+
+        displayInstructorInfo(profile);
+        loadInstructorSavedBanks(profile.id);
         renderQuestionBankTable();
         document.getElementById('questions-bank-modal').classList.add('visible');
       };
+
+      document.getElementById('btn-save-instructor-profile')?.addEventListener('click', () => {
+        const input = document.getElementById('input-instructor-initial-name');
+        const name = input ? input.value.trim() : '';
+        if (!name) {
+          input?.focus();
+          return;
+        }
+        SoundEngine.init();
+        SoundEngine.playAuthConfirmed();
+        const profile = saveInstructorProfile(name);
+        displayInstructorInfo(profile);
+        loadInstructorSavedBanks(profile.id);
+        renderQuestionBankTable();
+        document.getElementById('questions-bank-modal')?.classList.add('visible');
+      });
+
+      document.getElementById('input-instructor-initial-name')?.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          document.getElementById('btn-save-instructor-profile')?.click();
+        }
+      });
+
+      document.getElementById('btn-edit-instructor-name')?.addEventListener('click', () => {
+        const currentProfile = getInstructorProfile();
+        const input = document.getElementById('input-instructor-initial-name');
+        if (input && currentProfile) {
+          input.value = currentProfile.name;
+        }
+        document.getElementById('questions-bank-modal')?.classList.remove('visible');
+        document.getElementById('instructor-setup-modal')?.classList.add('visible');
+        setTimeout(() => { input?.focus(); }, 100);
+      });
+
+      document.getElementById('select-instructor-banks')?.addEventListener('change', (e) => {
+        const bankId = e.target.value;
+        if (!bankId) return;
+
+        const bank = cachedInstructorBanks.find(b => b.id === bankId);
+        if (!bank || !bank.questions || bank.questions.length === 0) return;
+
+        QuestionBank.setQuestions(bank.questions);
+        activeQuestionsBank = bank.questions;
+        renderQuestionBankTable();
+        updateQuestionCountBadges();
+
+        const nameInput = document.getElementById('input-block-name');
+        if (nameInput) nameInput.value = bank.name;
+
+        SoundEngine.init();
+        SoundEngine.playAuthConfirmed();
+
+        // 3. USO DE LOS BANCOS EN LA SALA:
+        // Cuando el instructor elija uno de sus bloques guardados o suba uno nuevo y cree una sala multijugador (/rooms/{roomId}),
+        // copia las preguntas a rooms/${roomId}/questions para que todos los alumnos que entren por el QR jueguen con esas preguntas automáticamente.
+        if (GameState.roomId) {
+          if (db) {
+            try {
+              db.ref(`rooms/${GameState.roomId}/questions`).set(bank.questions).catch(() => {});
+            } catch (_) {}
+          }
+          syncQuestionsFallback(GameState.roomId, bank.questions);
+          showQuestionBankAlert(`¡BANCO '${bank.name}' ACTIVADO EN LA SALA (${bank.questions.length} PREGUNTAS)!`, 'success');
+          showCombatFeedAnnouncement(`BANCO '${bank.name}' ACTIVADO EN LA SALA (${bank.questions.length} PREGUNTAS)`, 'reassign');
+        } else {
+          showQuestionBankAlert(`¡BANCO '${bank.name}' ACTIVADO (${bank.questions.length} PREGUNTAS)! Listo para crear sala.`, 'success');
+        }
+      });
 
       document.getElementById('btn-open-questions-bank')?.addEventListener('click', openQBModal);
       document.getElementById('btn-open-questions-bank-menu')?.addEventListener('click', openQBModal);
