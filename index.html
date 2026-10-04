@@ -1797,6 +1797,129 @@
       opacity: 1 !important;
       pointer-events: auto !important;
     }
+
+    /* ==========================================================================
+       VISTAS DEL ALMIRANTE Y PARTICIPANTES (ARQUITECTURA DE SALAS DEFINITIVA)
+       ========================================================================== */
+    .participant-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: calc(100vh - 120px);
+      padding: 16px;
+      box-sizing: border-box;
+      width: 100%;
+    }
+    .participant-card {
+      width: min(92vw, 430px);
+      background: var(--surface-card);
+      border: 1px solid var(--grid-line);
+      border-radius: 12px;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      text-align: center;
+      box-shadow: 0 0 35px rgba(0, 240, 255, 0.2);
+    }
+    .participant-waiting-pulse {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      background: rgba(0, 240, 255, 0.12);
+      border: 2px solid var(--accent);
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 32px;
+      animation: alertPulse 1.8s infinite ease-in-out;
+    }
+    .admiral-mosaic-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 14px;
+      width: 100%;
+      margin-top: 12px;
+      overflow-y: auto;
+      max-height: calc(100vh - 180px);
+      padding: 4px;
+      box-sizing: border-box;
+    }
+    .admiral-commander-card {
+      background: var(--surface-card);
+      border: 1px solid var(--grid-line);
+      border-radius: 8px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      transition: all 0.2s ease;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+    }
+    .admiral-commander-card.sunk {
+      border-color: var(--danger);
+      background: rgba(255, 59, 48, 0.08);
+      opacity: 0.85;
+    }
+    .admiral-mini-grid {
+      display: grid;
+      grid-template-columns: repeat(10, 1fr);
+      grid-template-rows: repeat(10, 1fr);
+      aspect-ratio: 1;
+      width: 100%;
+      max-width: 200px;
+      margin: 0 auto;
+      background: #020712;
+      border: 1px solid var(--grid-line);
+      border-radius: 4px;
+      gap: 1px;
+      padding: 2px;
+      box-sizing: border-box;
+    }
+    .admiral-mini-cell {
+      background: #020712;
+      border: 1px solid rgba(0, 240, 255, 0.05);
+      border-radius: 2px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 8px;
+      line-height: 1;
+      user-select: none;
+      transition: background 0.2s ease;
+    }
+    .admiral-mini-cell.miss {
+      background: rgba(0, 240, 255, 0.06);
+    }
+    .admiral-mini-cell.miss::after {
+      content: '•';
+      color: rgba(255, 255, 255, 0.55);
+      font-size: 11px;
+      font-weight: 700;
+    }
+    .admiral-mini-cell.hit {
+      background: #ff3b30;
+      box-shadow: inset 0 0 4px #ff9500, 0 0 6px rgba(255, 59, 48, 0.85);
+      animation: alertPulse 1.2s infinite ease-in-out;
+    }
+    .admiral-mini-cell.hit::after {
+      content: '💥';
+      font-size: 8px;
+    }
+    .admiral-mini-cell.sunk {
+      background: #3d0707;
+      border: 1px solid #ff3b30;
+      box-shadow: inset 0 0 5px rgba(255, 59, 48, 0.6);
+    }
+    .admiral-mini-cell.sunk::after {
+      content: '☠️';
+      font-size: 8px;
+    }
+    .app-participant-mode #btn-open-questions-bank {
+      display: none !important;
+    }
   </style>
 </head>
 <body>
@@ -1837,9 +1960,13 @@
         <button id="btn-open-questions-bank" class="tactical-btn" type="button" title="Gestionar Banco de Preguntas Excel">
           ⚙️ PREGUNTAS
         </button>
-        <button id="btn-audio-toggle" class="tactical-btn" type="button" title="Conmutar Audio Procedural">
-          🔊 AUDIO ON
-        </button>
+        <div style="display:inline-flex; align-items:center; gap:6px; background:rgba(0,0,0,0.35); padding:2px 8px; border-radius:6px; border:1px solid var(--grid-line);">
+          <button id="btn-audio-toggle" class="tactical-btn" type="button" title="Conmutar Audio de Batalla" style="border:none; padding:4px 6px; background:transparent;">
+            🔊 AUDIO ON
+          </button>
+          <input id="slider-master-volume" type="range" min="0" max="1" step="0.05" value="0.8"
+            style="width:52px; height:4px; accent-color:var(--accent); cursor:pointer;" title="Volumen Maestro (0% - 100%)" aria-label="Volumen Maestro" />
+        </div>
         <button id="btn-return-menu" class="tactical-btn" type="button" style="display:none;">
           MENÚ
         </button>
@@ -1994,6 +2121,126 @@
               INICIAR DESPLIEGUE
             </button>
           </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- ======================================================================
+         VISTA 2.1: REGISTRO LIMPIO Y DIRECTO DEL PARTICIPANTE (?room=CODIGO)
+         CERO MENÚS DE INSTRUCTOR · CERO CÓDIGOS QR · CERO DESCARGAS
+         ====================================================================== -->
+    <main id="view-participant-join" class="screen-view">
+      <div class="participant-container">
+        <div class="participant-card">
+          <div style="font-size:42px;">⚓</div>
+          <div>
+            <div style="font-size:12px; font-weight:700; color:var(--accent); font-family:'JetBrains Mono',monospace; letter-spacing:0.12em;">
+              COMBATE NAVAL · SALA <span id="participant-room-code-tag">------</span>
+            </div>
+            <h2 style="margin:4px 0 0; font-size:22px; color:#ffffff; letter-spacing:0.04em;">
+              INGRESO DE COMANDANTE
+            </h2>
+            <p style="margin:6px 0 0; font-size:13px; color:var(--text-muted); line-height:1.45;">
+              Conéctate a la flota del Almirante para desplegar tus buques y combatir contra los demás participantes.
+            </p>
+          </div>
+
+          <div style="display:flex; flex-direction:column; gap:8px; text-align:left;">
+            <label for="input-participant-name" style="font-size:12px; font-weight:700; color:var(--text-main); font-family:'JetBrains Mono',monospace;">
+              [ INGRESA TU NOMBRE O CALLSIGN ]:
+            </label>
+            <input id="input-participant-name" type="text" maxlength="20" placeholder="Ej. Carlos, Sofía, Fernando"
+              style="width:100%; box-sizing:border-box; background:rgba(0,0,0,0.6); border:1px solid var(--accent); border-radius:6px; padding:12px 14px; font-size:15px; color:#ffffff; font-family:'Chakra Petch',sans-serif;" />
+          </div>
+
+          <button id="btn-participant-join" type="button" class="tactical-btn primary" style="width:100%; padding:14px; font-size:15px; font-weight:700;">
+            ⚓ UNIRSE A LA FLOTA
+          </button>
+        </div>
+      </div>
+    </main>
+
+    <!-- ======================================================================
+         VISTA 2.2: SALA DE ESPERA TÁCTICA DEL PARTICIPANTE
+         ====================================================================== -->
+    <main id="view-participant-waiting" class="screen-view">
+      <div class="participant-container">
+        <div class="participant-card">
+          <div class="participant-waiting-pulse">
+            🛰️
+          </div>
+          <div>
+            <div style="font-size:12px; font-weight:700; color:var(--accent); font-family:'JetBrains Mono',monospace; letter-spacing:0.12em;">
+              ENLACE SATELITAL ACTIVO
+            </div>
+            <h2 style="margin:4px 0 0; font-size:20px; color:#ffffff; letter-spacing:0.04em;">
+              CONECTADO CON EL ALMIRANTE
+            </h2>
+            <p style="margin:6px 0 0; font-size:13px; color:var(--warning); font-family:'JetBrains Mono',monospace; font-weight:600; line-height:1.45;">
+              ⏳ ESPERANDO A QUE EL ALMIRANTE ORDENE EL DESPLIEGUE...
+            </p>
+          </div>
+
+          <!-- Datos del participante -->
+          <div style="display:flex; justify-content:space-between; align-items:center; background:rgba(0,0,0,0.5); border:1px solid var(--grid-line); border-radius:6px; padding:10px 14px; font-family:'JetBrains Mono',monospace; font-size:12px;">
+            <span>COMANDANTE: <strong id="waiting-my-name" style="color:#ffffff;">---</strong></span>
+            <span>SALA: <strong id="waiting-room-tag" style="color:var(--accent);">------</strong></span>
+          </div>
+
+          <!-- Lista de otros comandantes en la sala -->
+          <div style="background:rgba(0,0,0,0.35); border:1px solid var(--grid-line); border-radius:6px; padding:10px; text-align:left;">
+            <div style="font-size:11px; font-weight:700; color:var(--text-muted); font-family:'JetBrains Mono',monospace; margin-bottom:6px; display:flex; justify-content:space-between;">
+              <span>COMANDANTES EN LÍNEA</span>
+              <span id="waiting-players-count">0</span>
+            </div>
+            <div id="participant-waiting-list" style="display:flex; flex-direction:column; gap:5px; max-height:140px; overflow-y:auto; font-family:'JetBrains Mono',monospace; font-size:12px;">
+              <!-- Nombres de comandantes conectados -->
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- ======================================================================
+         VISTA 2.3: CENTRO DE COMANDO ESTRATÉGICO DEL ALMIRANTE (MODO DIRECTOR / NO JUGADOR)
+         Cuadrícula en mosaico con los tableros de TODOS los jugadores en tiempo real
+         ====================================================================== -->
+    <main id="view-admiral-war-room" class="screen-view">
+      <section class="war-room-card" style="padding:16px; max-width:100%; width:100%; box-sizing:border-box;">
+        <!-- Header del Centro Estratégico -->
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; border-bottom:1px solid var(--grid-line); padding-bottom:12px;">
+          <div>
+            <div style="font-size:11px; font-weight:700; color:var(--accent); font-family:'JetBrains Mono',monospace; letter-spacing:0.12em;">
+              MODO DIRECTOR SUPREMO · CENTRO DE COMANDO ESTRATÉGICO
+            </div>
+            <h2 style="margin:2px 0 0; font-size:clamp(18px, 2.5vw, 24px); color:#ffffff; letter-spacing:0.04em;">
+              🎖️ SALA DE OPERACIONES DEL ALMIRANTE — SALA <span id="admiral-room-code-tag" style="color:var(--accent);">------</span>
+            </h2>
+          </div>
+
+          <!-- Telemetría general de combate -->
+          <div style="display:flex; gap:12px; align-items:center; font-family:'JetBrains Mono',monospace; font-size:12px; flex-wrap:wrap;">
+            <div style="background:rgba(0,240,255,0.1); border:1px solid var(--accent); padding:6px 10px; border-radius:6px;">
+              COMANDANTES ACTIVOS: <strong id="admiral-active-count" style="color:var(--accent);">0</strong>
+            </div>
+            <div style="background:rgba(255,59,48,0.12); border:1px solid var(--danger); padding:6px 10px; border-radius:6px;">
+              BAJAS CONFIRMADAS: <strong id="admiral-sunk-count" style="color:var(--danger);">0</strong>
+            </div>
+            <button id="btn-admiral-finish-combat" type="button" class="tactical-btn danger" style="padding:6px 12px; font-size:12px;">
+              ⏹️ REANUDAR LOBBY
+            </button>
+          </div>
+        </div>
+
+        <!-- Feed en vivo de la batalla para el Almirante -->
+        <div id="admiral-combat-feed" style="margin-top:10px; background:rgba(0,0,0,0.5); border:1px solid var(--grid-line); border-radius:6px; padding:6px 12px; font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--text-main); display:flex; align-items:center; gap:8px;">
+          <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#22c55e; box-shadow:0 0 8px #22c55e;"></span>
+          <span id="admiral-feed-text">MONITOR ESTRATÉGICO EN LÍNEA · TODOS LOS TABLEROS EN TRANSMISIÓN CONTINUA</span>
+        </div>
+
+        <!-- Mosaico / Cuadrícula de tableros de todos los comandantes -->
+        <div id="admiral-mosaic-grid" class="admiral-mosaic-grid">
+          <!-- Renderizado en tiempo real de cada comandante -->
         </div>
       </section>
     </main>
@@ -2519,232 +2766,626 @@
       }
 
       /* ========================================================================
-         2. MOTOR DE AUDIO PROCEDURAL (WEB AUDIO API)
-         Silbido de propulsión y turbina, chapuzón de agua, estruendo metálico,
-         pulso de sonar 3x3 y alarma de combate naval.
+         2. SINTETIZADOR CINEMATOGRÁFICO Y TÁCTICO DE ALTA FIDELIDAD (WEB AUDIO API)
          ======================================================================== */
       const SoundEngine = {
         ctx: null,
+        masterGain: null,
         enabled: true,
+        volume: 0.8,
+        unlocked: false,
 
         init() {
           if (!this.ctx) {
             const AudioCtx = window.AudioContext || window.webkitAudioContext;
-            if (AudioCtx) this.ctx = new AudioCtx();
+            if (!AudioCtx) return;
+            this.ctx = new AudioCtx();
+            this.masterGain = this.ctx.createGain();
+            this.masterGain.connect(this.ctx.destination);
+
+            // Cargar persistencia de audio desde localStorage
+            const savedEnabled = localStorage.getItem('naval_war_audio_enabled');
+            if (savedEnabled !== null) {
+              this.enabled = savedEnabled !== 'false';
+            }
+            const savedVol = localStorage.getItem('naval_war_audio_volume');
+            if (savedVol !== null) {
+              const parsed = parseFloat(savedVol);
+              if (!isNaN(parsed) && parsed >= 0 && parsed <= 1) {
+                this.volume = parsed;
+              }
+            }
+
+            this.applyMasterGain();
+            this.updateUI();
           }
+
           if (this.ctx && this.ctx.state === 'suspended') {
             this.ctx.resume().catch(() => {});
           }
+
+          if (!this.unlocked) {
+            this.unlocked = true;
+            const unlockHandler = () => {
+              if (this.ctx && this.ctx.state === 'suspended') {
+                this.ctx.resume().catch(() => {});
+              }
+            };
+            ['click', 'touchstart', 'touchend', 'pointerdown', 'keydown'].forEach(evt => {
+              window.addEventListener(evt, unlockHandler, { passive: true });
+            });
+          }
         },
 
-        playMissileLaunch(durationSec = 0.68) {
+        applyMasterGain() {
+          if (!this.masterGain || !this.ctx) return;
+          const target = this.enabled ? this.volume : 0;
+          this.masterGain.gain.setValueAtTime(target, this.ctx.currentTime);
+        },
+
+        setVolume(val) {
+          this.init();
+          const clamped = Math.max(0, Math.min(1, parseFloat(val) || 0));
+          this.volume = clamped;
+          try { localStorage.setItem('naval_war_audio_volume', clamped.toString()); } catch (_) {}
+          this.applyMasterGain();
+          this.updateUI();
+        },
+
+        toggleMute() {
+          this.init();
+          this.enabled = !this.enabled;
+          try { localStorage.setItem('naval_war_audio_enabled', this.enabled.toString()); } catch (_) {}
+          this.applyMasterGain();
+          this.updateUI();
+          if (this.enabled) {
+            this.playRadarBlip();
+          }
+          return this.enabled;
+        },
+
+        updateUI() {
+          const btn = document.getElementById('btn-audio-toggle');
+          if (btn) {
+            btn.textContent = this.enabled ? '🔊 AUDIO ON' : '🔇 AUDIO OFF';
+            btn.style.color = this.enabled ? 'var(--accent)' : 'var(--text-muted)';
+          }
+          const slider = document.getElementById('slider-master-volume');
+          if (slider) {
+            slider.value = this.enabled ? this.volume : 0;
+          }
+        },
+
+        createNoiseBuffer(durationSec = 0.5) {
+          if (!this.ctx) return null;
+          const sampleRate = this.ctx.sampleRate;
+          const bufferSize = Math.floor(sampleRate * durationSec);
+          const buffer = this.ctx.createBuffer(1, bufferSize, sampleRate);
+          const data = buffer.getChannelData(0);
+          for (let i = 0; i < bufferSize; i++) {
+            data[i] = Math.random() * 2 - 1;
+          }
+          return buffer;
+        },
+
+        /* ----------------------------------------------------------------------
+           1. LANZAMIENTO DE TORPEDO / MISIL (playTorpedoLaunch)
+           Silbido balístico descendente + compresión neumática + burbujeo subacuático
+           ---------------------------------------------------------------------- */
+        playTorpedoLaunch(durationSec = 0.72) {
           if (!this.enabled) return;
           this.init();
           if (!this.ctx) return;
           const now = this.ctx.currentTime;
 
-          // Turbina acelerando (oscilador sierra ascendente + filtro)
-          const osc = this.ctx.createOscillator();
-          const gain = this.ctx.createGain();
-          osc.type = 'sawtooth';
-          osc.frequency.setValueAtTime(190, now);
-          osc.frequency.exponentialRampToValueAtTime(760, now + durationSec * 0.65);
-          osc.frequency.exponentialRampToValueAtTime(320, now + durationSec);
+          // Capa A: Silbido balístico descendente en frecuencia (sawtooth + bandpass)
+          const whistleOsc = this.ctx.createOscillator();
+          const whistleFilter = this.ctx.createBiquadFilter();
+          const whistleGain = this.ctx.createGain();
 
-          gain.gain.setValueAtTime(0.01, now);
-          gain.gain.linearRampToValueAtTime(0.11, now + 0.08);
-          gain.gain.exponentialRampToValueAtTime(0.005, now + durationSec);
+          whistleOsc.type = 'sawtooth';
+          whistleOsc.frequency.setValueAtTime(760, now);
+          whistleOsc.frequency.exponentialRampToValueAtTime(185, now + durationSec);
 
-          osc.connect(gain);
-          gain.connect(this.ctx.destination);
-          osc.start(now);
-          osc.stop(now + durationSec);
+          whistleFilter.type = 'bandpass';
+          whistleFilter.frequency.setValueAtTime(990, now);
+          whistleFilter.frequency.exponentialRampToValueAtTime(310, now + durationSec);
+          whistleFilter.Q.setValueAtTime(3.4, now);
 
-          // Ruido blanco de propulsión
-          const bufferSize = Math.floor(this.ctx.sampleRate * durationSec);
-          const noiseBuffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
-          const data = noiseBuffer.getChannelData(0);
-          for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+          whistleGain.gain.setValueAtTime(0.01, now);
+          whistleGain.gain.linearRampToValueAtTime(0.24, now + 0.05);
+          whistleGain.gain.exponentialRampToValueAtTime(0.001, now + durationSec);
 
-          const noise = this.ctx.createBufferSource();
-          noise.buffer = noiseBuffer;
-          const filter = this.ctx.createBiquadFilter();
-          filter.type = 'bandpass';
-          filter.frequency.setValueAtTime(900, now);
-          filter.frequency.exponentialRampToValueAtTime(2400, now + durationSec);
+          whistleOsc.connect(whistleFilter);
+          whistleFilter.connect(whistleGain);
+          whistleGain.connect(this.masterGain);
+          whistleOsc.start(now);
+          whistleOsc.stop(now + durationSec);
 
-          const nGain = this.ctx.createGain();
-          nGain.gain.setValueAtTime(0.14, now);
-          nGain.gain.exponentialRampToValueAtTime(0.01, now + durationSec);
+          // Capa B: Compresión neumática de eyección (burst de ruido blanco)
+          const noiseBuf = this.createNoiseBuffer(0.26);
+          if (noiseBuf) {
+            const noiseSrc = this.ctx.createBufferSource();
+            noiseSrc.buffer = noiseBuf;
+            const noiseFilter = this.ctx.createBiquadFilter();
+            noiseFilter.type = 'lowpass';
+            noiseFilter.frequency.setValueAtTime(1500, now);
+            noiseFilter.frequency.exponentialRampToValueAtTime(250, now + 0.25);
 
-          noise.connect(filter);
-          filter.connect(nGain);
-          nGain.connect(this.ctx.destination);
-          noise.start(now);
+            const noiseGain = this.ctx.createGain();
+            noiseGain.gain.setValueAtTime(0.38, now);
+            noiseGain.gain.exponentialRampToValueAtTime(0.005, now + 0.26);
+
+            noiseSrc.connect(noiseFilter);
+            noiseFilter.connect(noiseGain);
+            noiseGain.connect(this.masterGain);
+            noiseSrc.start(now);
+          }
+
+          // Capa C: Burbujeo subacuático de eyección (modulación LFO 34 Hz)
+          const bubbleOsc = this.ctx.createOscillator();
+          const bubbleLFO = this.ctx.createOscillator();
+          const lfoGain = this.ctx.createGain();
+          const bubbleGain = this.ctx.createGain();
+
+          bubbleOsc.type = 'sine';
+          bubbleOsc.frequency.setValueAtTime(130, now);
+          bubbleOsc.frequency.exponentialRampToValueAtTime(50, now + 0.45);
+
+          bubbleLFO.type = 'sine';
+          bubbleLFO.frequency.setValueAtTime(34, now);
+          lfoGain.gain.setValueAtTime(36, now);
+          bubbleLFO.connect(lfoGain);
+          lfoGain.connect(bubbleOsc.frequency);
+
+          bubbleGain.gain.setValueAtTime(0.28, now);
+          bubbleGain.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+
+          bubbleOsc.connect(bubbleGain);
+          bubbleGain.connect(this.masterGain);
+          bubbleLFO.start(now);
+          bubbleOsc.start(now);
+          bubbleLFO.stop(now + 0.45);
+          bubbleOsc.stop(now + 0.45);
         },
 
-        playWaterSplash() {
-          if (!this.enabled) return;
-          this.init();
-          if (!this.ctx) return;
-          const now = this.ctx.currentTime;
-
-          // Sonido sordo de chapuzón + espuma
-          const osc = this.ctx.createOscillator();
-          const oGain = this.ctx.createGain();
-          osc.type = 'sine';
-          osc.frequency.setValueAtTime(160, now);
-          osc.frequency.exponentialRampToValueAtTime(42, now + 0.38);
-          oGain.gain.setValueAtTime(0.24, now);
-          oGain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
-          osc.connect(oGain);
-          oGain.connect(this.ctx.destination);
-          osc.start(now);
-          osc.stop(now + 0.4);
-
-          const dur = 0.55;
-          const buf = this.ctx.createBuffer(1, Math.floor(this.ctx.sampleRate * dur), this.ctx.sampleRate);
-          const ch = buf.getChannelData(0);
-          for (let i = 0; i < ch.length; i++) ch[i] = (Math.random() * 2 - 1) * Math.exp(-i / (this.ctx.sampleRate * 0.18));
-          const src = this.ctx.createBufferSource();
-          src.buffer = buf;
-          const lp = this.ctx.createBiquadFilter();
-          lp.type = 'lowpass';
-          lp.frequency.setValueAtTime(680, now);
-          const g = this.ctx.createGain();
-          g.gain.setValueAtTime(0.22, now);
-          src.connect(lp);
-          lp.connect(g);
-          g.connect(this.ctx.destination);
-          src.start(now);
+        playMissileLaunch(dur) {
+          this.playTorpedoLaunch(dur || 0.72);
         },
 
+        /* ----------------------------------------------------------------------
+           2. IMPACTO / EXPLOSIÓN METÁLICA (playHitDetonation)
+           Detonación profunda + crujido metálico + cola de eco sordo
+           ---------------------------------------------------------------------- */
         playHitDetonation() {
           if (!this.enabled) return;
           this.init();
           if (!this.ctx) return;
           const now = this.ctx.currentTime;
 
-          // Impacto metálico y explosión grave
-          const sub = this.ctx.createOscillator();
+          // Capa A: Detonación profunda sub-grave
+          const subOsc = this.ctx.createOscillator();
           const subGain = this.ctx.createGain();
-          sub.type = 'triangle';
-          sub.frequency.setValueAtTime(135, now);
-          sub.frequency.exponentialRampToValueAtTime(24, now + 0.65);
-          subGain.gain.setValueAtTime(0.38, now);
-          subGain.gain.exponentialRampToValueAtTime(0.001, now + 0.65);
-          sub.connect(subGain);
-          subGain.connect(this.ctx.destination);
-          sub.start(now);
-          sub.stop(now + 0.65);
+          subOsc.type = 'sine';
+          subOsc.frequency.setValueAtTime(165, now);
+          subOsc.frequency.exponentialRampToValueAtTime(24, now + 0.78);
+          subGain.gain.setValueAtTime(0.5, now);
+          subGain.gain.exponentialRampToValueAtTime(0.001, now + 0.8);
+          subOsc.connect(subGain);
+          subGain.connect(this.masterGain);
+          subOsc.start(now);
+          subOsc.stop(now + 0.8);
 
-          // Estruendo metálico
-          const dur = 0.7;
-          const buf = this.ctx.createBuffer(1, Math.floor(this.ctx.sampleRate * dur), this.ctx.sampleRate);
-          const ch = buf.getChannelData(0);
-          for (let i = 0; i < ch.length; i++) ch[i] = (Math.random() * 2 - 1) * Math.exp(-i / (this.ctx.sampleRate * 0.22));
-          const src = this.ctx.createBufferSource();
-          src.buffer = buf;
-          const bp = this.ctx.createBiquadFilter();
-          bp.type = 'lowpass';
-          bp.frequency.setValueAtTime(1400, now);
-          bp.frequency.exponentialRampToValueAtTime(180, now + dur);
-          const g = this.ctx.createGain();
-          g.gain.setValueAtTime(0.32, now);
-          src.connect(bp);
-          bp.connect(g);
-          g.connect(this.ctx.destination);
-          src.start(now);
+          // Capa B: Crujido metálico de perforación de blindaje
+          const metalOsc = this.ctx.createOscillator();
+          const metalFilter = this.ctx.createBiquadFilter();
+          const metalGain = this.ctx.createGain();
+          metalOsc.type = 'square';
+          metalOsc.frequency.setValueAtTime(340, now);
+          metalOsc.frequency.exponentialRampToValueAtTime(70, now + 0.35);
+
+          metalFilter.type = 'bandpass';
+          metalFilter.frequency.setValueAtTime(1750, now);
+          metalFilter.Q.setValueAtTime(5.8, now);
+
+          metalGain.gain.setValueAtTime(0.34, now);
+          metalGain.gain.exponentialRampToValueAtTime(0.001, now + 0.36);
+
+          metalOsc.connect(metalFilter);
+          metalFilter.connect(metalGain);
+          metalGain.connect(this.masterGain);
+          metalOsc.start(now);
+          metalOsc.stop(now + 0.36);
+
+          // Capa C: Cola de eco sordo y estruendo de casco (rumble)
+          const rumbleBuf = this.createNoiseBuffer(0.95);
+          if (rumbleBuf) {
+            const rumbleSrc = this.ctx.createBufferSource();
+            rumbleSrc.buffer = rumbleBuf;
+            const rumbleFilter = this.ctx.createBiquadFilter();
+            rumbleFilter.type = 'lowpass';
+            rumbleFilter.frequency.setValueAtTime(2400, now);
+            rumbleFilter.frequency.exponentialRampToValueAtTime(120, now + 0.95);
+
+            const rumbleGain = this.ctx.createGain();
+            rumbleGain.gain.setValueAtTime(0.44, now);
+            rumbleGain.gain.exponentialRampToValueAtTime(0.005, now + 0.95);
+
+            rumbleSrc.connect(rumbleFilter);
+            rumbleFilter.connect(rumbleGain);
+            rumbleGain.connect(this.masterGain);
+            rumbleSrc.start(now);
+          }
         },
 
+        playExplosion() {
+          this.playHitDetonation();
+        },
+
+        /* ----------------------------------------------------------------------
+           3. AGUA / DISPARO FALLIDO (playWaterSplash)
+           Chapuzón con barrido rápido de paso-bajo + desvanecimiento de espuma
+           ---------------------------------------------------------------------- */
+        playWaterSplash() {
+          if (!this.enabled) return;
+          this.init();
+          if (!this.ctx) return;
+          const now = this.ctx.currentTime;
+
+          // Capa A: Desplazamiento y zambullida inicial (pitch drop)
+          const dropOsc = this.ctx.createOscillator();
+          const dropGain = this.ctx.createGain();
+          dropOsc.type = 'sine';
+          dropOsc.frequency.setValueAtTime(225, now);
+          dropOsc.frequency.exponentialRampToValueAtTime(42, now + 0.28);
+
+          dropGain.gain.setValueAtTime(0.32, now);
+          dropGain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+
+          dropOsc.connect(dropGain);
+          dropGain.connect(this.masterGain);
+          dropOsc.start(now);
+          dropOsc.stop(now + 0.3);
+
+          // Capa B: Chapuzón de agua (ruido blanco + barrido rápido paso-bajo)
+          const splashBuf = this.createNoiseBuffer(0.52);
+          if (splashBuf) {
+            const splashSrc = this.ctx.createBufferSource();
+            splashSrc.buffer = splashBuf;
+            const splashFilter = this.ctx.createBiquadFilter();
+            splashFilter.type = 'lowpass';
+            splashFilter.frequency.setValueAtTime(1800, now);
+            splashFilter.frequency.exponentialRampToValueAtTime(280, now + 0.48);
+
+            const splashGain = this.ctx.createGain();
+            splashGain.gain.setValueAtTime(0.35, now);
+            splashGain.gain.exponentialRampToValueAtTime(0.005, now + 0.52);
+
+            splashSrc.connect(splashFilter);
+            splashFilter.connect(splashGain);
+            splashGain.connect(this.masterGain);
+            splashSrc.start(now);
+          }
+
+          // Capa C: Desvanecimiento suave de espuma marina y burbujas
+          const foamBuf = this.createNoiseBuffer(0.7);
+          if (foamBuf) {
+            const foamSrc = this.ctx.createBufferSource();
+            foamSrc.buffer = foamBuf;
+            const foamFilter = this.ctx.createBiquadFilter();
+            foamFilter.type = 'bandpass';
+            foamFilter.frequency.setValueAtTime(760, now);
+            foamFilter.Q.setValueAtTime(1.8, now);
+
+            const foamGain = this.ctx.createGain();
+            foamGain.gain.setValueAtTime(0.01, now);
+            foamGain.gain.linearRampToValueAtTime(0.18, now + 0.08);
+            foamGain.gain.exponentialRampToValueAtTime(0.001, now + 0.7);
+
+            foamSrc.connect(foamFilter);
+            foamFilter.connect(foamGain);
+            foamGain.connect(this.masterGain);
+            foamSrc.start(now + 0.04);
+          }
+        },
+
+        playSplash() {
+          this.playWaterSplash();
+        },
+
+        /* ----------------------------------------------------------------------
+           4. BUQUE HUNDIDO (playShipSunk)
+           Doble explosión grave + crujido estructural metálico + gemido de presión
+           ---------------------------------------------------------------------- */
+        playShipSunk() {
+          if (!this.enabled) return;
+          this.init();
+          if (!this.ctx) return;
+          const now = this.ctx.currentTime;
+
+          // 1. Doble explosión grave (t=0s y t=0.35s)
+          [0, 0.35].forEach((offset, idx) => {
+            const expOsc = this.ctx.createOscillator();
+            const expGain = this.ctx.createGain();
+            expOsc.type = 'sine';
+            expOsc.frequency.setValueAtTime(idx === 0 ? 150 : 92, now + offset);
+            expOsc.frequency.exponentialRampToValueAtTime(idx === 0 ? 30 : 20, now + offset + 0.85);
+
+            expGain.gain.setValueAtTime(idx === 0 ? 0.45 : 0.52, now + offset);
+            expGain.gain.exponentialRampToValueAtTime(0.001, now + offset + 0.9);
+
+            expOsc.connect(expGain);
+            expGain.connect(this.masterGain);
+            expOsc.start(now + offset);
+            expOsc.stop(now + offset + 0.9);
+
+            const nBuf = this.createNoiseBuffer(0.92);
+            if (nBuf) {
+              const nSrc = this.ctx.createBufferSource();
+              nSrc.buffer = nBuf;
+              const nFilter = this.ctx.createBiquadFilter();
+              nFilter.type = 'lowpass';
+              nFilter.frequency.setValueAtTime(idx === 0 ? 2100 : 1250, now + offset);
+              nFilter.frequency.exponentialRampToValueAtTime(105, now + offset + 0.9);
+
+              const nGain = this.ctx.createGain();
+              nGain.gain.setValueAtTime(0.4, now + offset);
+              nGain.gain.exponentialRampToValueAtTime(0.005, now + offset + 0.92);
+
+              nSrc.connect(nFilter);
+              nFilter.connect(nGain);
+              nGain.connect(this.masterGain);
+              nSrc.start(now + offset);
+            }
+          });
+
+          // 2. Crujido estructural metálico prolongado (Mamparos quebrándose)
+          [185, 270].forEach(baseFreq => {
+            const crackOsc = this.ctx.createOscillator();
+            const crackFilter = this.ctx.createBiquadFilter();
+            const crackGain = this.ctx.createGain();
+
+            crackOsc.type = 'sawtooth';
+            crackOsc.frequency.setValueAtTime(baseFreq, now + 0.22);
+            crackOsc.frequency.linearRampToValueAtTime(baseFreq * 0.65, now + 1.85);
+
+            crackFilter.type = 'bandpass';
+            crackFilter.frequency.setValueAtTime(baseFreq * 2.1, now + 0.22);
+            crackFilter.Q.setValueAtTime(6.2, now + 0.22);
+
+            crackGain.gain.setValueAtTime(0.01, now + 0.22);
+            crackGain.gain.linearRampToValueAtTime(0.2, now + 0.45);
+            crackGain.gain.exponentialRampToValueAtTime(0.001, now + 1.9);
+
+            crackOsc.connect(crackFilter);
+            crackFilter.connect(crackGain);
+            crackGain.connect(this.masterGain);
+            crackOsc.start(now + 0.22);
+            crackOsc.stop(now + 1.9);
+          });
+
+          // 3. Gemido sordo de presión abisal y descenso en el mar
+          const abyssOsc = this.ctx.createOscillator();
+          const abyssLFO = this.ctx.createOscillator();
+          const abyssLFOGain = this.ctx.createGain();
+          const abyssGain = this.ctx.createGain();
+
+          abyssOsc.type = 'triangle';
+          abyssOsc.frequency.setValueAtTime(82, now + 0.5);
+          abyssOsc.frequency.exponentialRampToValueAtTime(18, now + 2.3);
+
+          abyssLFO.type = 'sine';
+          abyssLFO.frequency.setValueAtTime(7.0, now + 0.5);
+          abyssLFOGain.gain.setValueAtTime(15, now + 0.5);
+          abyssLFO.connect(abyssLFOGain);
+          abyssLFOGain.connect(abyssOsc.frequency);
+
+          abyssGain.gain.setValueAtTime(0.01, now + 0.5);
+          abyssGain.gain.linearRampToValueAtTime(0.36, now + 1.0);
+          abyssGain.gain.exponentialRampToValueAtTime(0.001, now + 2.4);
+
+          abyssOsc.connect(abyssGain);
+          abyssGain.connect(this.masterGain);
+          abyssLFO.start(now + 0.5);
+          abyssOsc.start(now + 0.5);
+          abyssLFO.stop(now + 2.4);
+          abyssOsc.stop(now + 2.4);
+        },
+
+        playNavalKlaxon() {
+          this.playShipSunk();
+        },
+
+        /* ----------------------------------------------------------------------
+           5. PING DE SONAR TÁCTICO (playSonarPing)
+           Tono puro a ~1200 Hz + modulación periódica + reverberación envolvente
+           ---------------------------------------------------------------------- */
         playSonarPing() {
           if (!this.enabled) return;
           this.init();
           if (!this.ctx) return;
           const now = this.ctx.currentTime;
-          [0, 0.22].forEach((offset, idx) => {
-            const osc = this.ctx.createOscillator();
-            const g = this.ctx.createGain();
-            osc.type = 'sine';
-            osc.frequency.setValueAtTime(idx === 0 ? 1320 : 1760, now + offset);
-            g.gain.setValueAtTime(0.18, now + offset);
-            g.gain.exponentialRampToValueAtTime(0.001, now + offset + 0.55);
-            osc.connect(g);
-            g.connect(this.ctx.destination);
-            osc.start(now + offset);
-            osc.stop(now + offset + 0.55);
-          });
+
+          // Tono Senoidal Principal (~1220 Hz)
+          const pingOsc = this.ctx.createOscillator();
+          const pingGain = this.ctx.createGain();
+          pingOsc.type = 'sine';
+          pingOsc.frequency.setValueAtTime(1220, now);
+
+          // Modulación sutil de eco en casco
+          const lfo = this.ctx.createOscillator();
+          const lfoGain = this.ctx.createGain();
+          lfo.type = 'sine';
+          lfo.frequency.setValueAtTime(6.0, now);
+          lfoGain.gain.setValueAtTime(8.0, now);
+          lfo.connect(lfoGain);
+          lfoGain.connect(pingOsc.frequency);
+
+          pingGain.gain.setValueAtTime(0.01, now);
+          pingGain.gain.linearRampToValueAtTime(0.35, now + 0.005);
+          pingGain.gain.exponentialRampToValueAtTime(0.0005, now + 1.5);
+
+          pingOsc.connect(pingGain);
+          pingGain.connect(this.masterGain);
+          lfo.start(now);
+          pingOsc.start(now);
+          lfo.stop(now + 1.5);
+          pingOsc.stop(now + 1.5);
+
+          // Brillo armónico cristalino (2440 Hz)
+          const shimmerOsc = this.ctx.createOscillator();
+          const shimmerGain = this.ctx.createGain();
+          shimmerOsc.type = 'sine';
+          shimmerOsc.frequency.setValueAtTime(2440, now);
+          shimmerGain.gain.setValueAtTime(0.12, now);
+          shimmerGain.gain.exponentialRampToValueAtTime(0.0005, now + 0.85);
+
+          shimmerOsc.connect(shimmerGain);
+          shimmerGain.connect(this.masterGain);
+          shimmerOsc.start(now);
+          shimmerOsc.stop(now + 0.85);
         },
 
-        playNavalKlaxon() {
-          if (!this.enabled) return;
-          this.init();
-          if (!this.ctx) return;
-          const now = this.ctx.currentTime;
-          for (let i = 0; i < 3; i++) {
-            const start = now + i * 0.65;
-            const osc = this.ctx.createOscillator();
-            const g = this.ctx.createGain();
-            osc.type = 'sawtooth';
-            osc.frequency.setValueAtTime(440, start);
-            osc.frequency.linearRampToValueAtTime(620, start + 0.28);
-            osc.frequency.linearRampToValueAtTime(360, start + 0.58);
-            g.gain.setValueAtTime(0.16, start);
-            g.gain.exponentialRampToValueAtTime(0.005, start + 0.6);
-            osc.connect(g);
-            g.connect(this.ctx.destination);
-            osc.start(start);
-            osc.stop(start + 0.6);
-          }
-        },
-
+        /* ----------------------------------------------------------------------
+           6. TRIVIA - AUTORIZACIÓN CORRECTA (playAuthConfirmed)
+           Acorde triunfal ascendente de 3 notas senoidales con brillo táctico
+           ---------------------------------------------------------------------- */
         playAuthConfirmed() {
           if (!this.enabled) return;
           this.init();
           if (!this.ctx) return;
           const now = this.ctx.currentTime;
-          // Tono de confirmación militar: acorde ascendente táctico de alta frecuencia
-          [
-            { freq: 659.25, start: 0, dur: 0.12 },
-            { freq: 880.00, start: 0.11, dur: 0.28 }
-          ].forEach(note => {
+
+          // Acorde ascendente triunfal: F5 (698.46 Hz) -> A5 (880.00 Hz) -> C6 (1046.50 Hz)
+          const notes = [
+            { freq: 698.46, delay: 0.00, dur: 0.14, gain: 0.28 },
+            { freq: 880.00, delay: 0.09, dur: 0.16, gain: 0.30 },
+            { freq: 1046.50, delay: 0.18, dur: 0.44, gain: 0.34 }
+          ];
+
+          notes.forEach(n => {
             const osc = this.ctx.createOscillator();
-            const g = this.ctx.createGain();
+            const gain = this.ctx.createGain();
             osc.type = 'sine';
-            osc.frequency.setValueAtTime(note.freq, now + note.start);
-            g.gain.setValueAtTime(0.24, now + note.start);
-            g.gain.exponentialRampToValueAtTime(0.001, now + note.start + note.dur);
-            osc.connect(g);
-            g.connect(this.ctx.destination);
-            osc.start(now + note.start);
-            osc.stop(now + note.start + note.dur);
+            osc.frequency.setValueAtTime(n.freq, now + n.delay);
+
+            gain.gain.setValueAtTime(0.01, now + n.delay);
+            gain.gain.linearRampToValueAtTime(n.gain, now + n.delay + 0.012);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + n.delay + n.dur);
+
+            osc.connect(gain);
+            gain.connect(this.masterGain);
+            osc.start(now + n.delay);
+            osc.stop(now + n.delay + n.dur);
           });
+
+          // Shimmer armónico táctico de confirmación (2093 Hz)
+          const shimmer = this.ctx.createOscillator();
+          const sGain = this.ctx.createGain();
+          shimmer.type = 'sine';
+          shimmer.frequency.setValueAtTime(2093, now + 0.18);
+          sGain.gain.setValueAtTime(0.09, now + 0.18);
+          sGain.gain.exponentialRampToValueAtTime(0.001, now + 0.55);
+          shimmer.connect(sGain);
+          sGain.connect(this.masterGain);
+          shimmer.start(now + 0.18);
+          shimmer.stop(now + 0.55);
         },
 
+        /* ----------------------------------------------------------------------
+           7. TRIVIA - FALLO / PROTOCOLO ABORTADO (playAuthDenied)
+           Zumbador de error militar (dos pulsos secos y graves en sawtooth)
+           ---------------------------------------------------------------------- */
         playAuthDenied() {
           if (!this.enabled) return;
           this.init();
           if (!this.ctx) return;
           const now = this.ctx.currentTime;
-          // Alarma de fallo / rechazo de protocolo: zumbador disonante doble
-          [0, 0.16].forEach(start => {
-            const osc1 = this.ctx.createOscillator();
-            const osc2 = this.ctx.createOscillator();
-            const g = this.ctx.createGain();
-            osc1.type = 'sawtooth';
-            osc2.type = 'square';
-            osc1.frequency.setValueAtTime(130, now + start);
-            osc2.frequency.setValueAtTime(142, now + start);
-            g.gain.setValueAtTime(0.24, now + start);
-            g.gain.exponentialRampToValueAtTime(0.005, now + start + 0.12);
-            osc1.connect(g);
-            osc2.connect(g);
-            g.connect(this.ctx.destination);
-            osc1.start(now + start);
-            osc2.start(now + start);
-            osc1.stop(now + start + 0.12);
-            osc2.stop(now + start + 0.12);
+
+          // Dos pulsos disonantes en sierra (130 Hz y 115 Hz)
+          [0, 0.18].forEach(start => {
+            const osc = this.ctx.createOscillator();
+            const filter = this.ctx.createBiquadFilter();
+            const gain = this.ctx.createGain();
+
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(130, now + start);
+            osc.frequency.linearRampToValueAtTime(112, now + start + 0.12);
+
+            filter.type = 'lowpass';
+            filter.frequency.setValueAtTime(650, now + start);
+            filter.Q.setValueAtTime(3.8, now + start);
+
+            gain.gain.setValueAtTime(0.34, now + start);
+            gain.gain.exponentialRampToValueAtTime(0.005, now + start + 0.13);
+
+            osc.connect(filter);
+            filter.connect(gain);
+            gain.connect(this.masterGain);
+            osc.start(now + start);
+            osc.stop(now + start + 0.13);
           });
+        },
+
+        /* ----------------------------------------------------------------------
+           8. ALERTA ROJA / FLOTA DESTRUIDA (playRedAlert)
+           Sirena militar de inmersión en dos tonos alternantes
+           ---------------------------------------------------------------------- */
+        playRedAlert() {
+          if (!this.enabled) return;
+          this.init();
+          if (!this.ctx) return;
+          const now = this.ctx.currentTime;
+
+          // 3 ciclos de sirena de inmersión naval (440 Hz -> 700 Hz -> 380 Hz)
+          for (let i = 0; i < 3; i++) {
+            const tStart = now + i * 0.55;
+            const osc = this.ctx.createOscillator();
+            const filter = this.ctx.createBiquadFilter();
+            const gain = this.ctx.createGain();
+
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(440, tStart);
+            osc.frequency.linearRampToValueAtTime(700, tStart + 0.26);
+            osc.frequency.linearRampToValueAtTime(380, tStart + 0.52);
+
+            filter.type = 'lowpass';
+            filter.frequency.setValueAtTime(1450, tStart);
+
+            gain.gain.setValueAtTime(0.01, tStart);
+            gain.gain.linearRampToValueAtTime(0.3, tStart + 0.05);
+            gain.gain.exponentialRampToValueAtTime(0.005, tStart + 0.54);
+
+            osc.connect(filter);
+            filter.connect(gain);
+            gain.connect(this.masterGain);
+            osc.start(tStart);
+            osc.stop(tStart + 0.54);
+          }
+        },
+
+        /* ----------------------------------------------------------------------
+           9. BLIP TÁCTICO DE RADAR / ENTRADA DE COMANDANTE (playRadarBlip)
+           ---------------------------------------------------------------------- */
+        playRadarBlip() {
+          if (!this.enabled) return;
+          this.init();
+          if (!this.ctx) return;
+          const now = this.ctx.currentTime;
+
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(980, now);
+          osc.frequency.exponentialRampToValueAtTime(720, now + 0.08);
+
+          gain.gain.setValueAtTime(0.2, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+
+          osc.connect(gain);
+          gain.connect(this.masterGain);
+          osc.start(now);
+          osc.stop(now + 0.08);
         }
       };
 
@@ -2858,7 +3499,7 @@
       resizeCanvases();
 
       function launchBallisticMissile(startX, startY, targetX, targetY, isHit, onImpact) {
-        SoundEngine.playMissileLaunch(0.66);
+        SoundEngine.playTorpedoLaunch(0.72);
         activeMissiles.push({
           sx: startX,
           sy: startY,
@@ -2929,7 +3570,7 @@
 
         titleEl.textContent = `¡${shipName.toUpperCase()} CONFIRMADO HUNDIDO!`;
         modal.classList.add('visible');
-        SoundEngine.playNavalKlaxon();
+        SoundEngine.playShipSunk();
 
         const ctx = sCanvas.getContext('2d');
         const W = sCanvas.width;
@@ -3280,7 +3921,7 @@
       const COLS = 10;
       const LETTERS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'];
 
-      const myCallsign = 'CMDR-' + Math.random().toString(36).substring(2, 6).toUpperCase();
+      let myCallsign = 'CMDR-' + Math.random().toString(36).substring(2, 6).toUpperCase();
       document.getElementById('player-callsign-display').textContent = myCallsign;
 
       const GameState = {
@@ -4591,6 +5232,7 @@
               renderFleetSVGs();
               renderBoardMarkers();
               updateFleetCountersAndHUD();
+              syncPlayerBoardToFirebase();
 
               if (newlySunkShip) {
                 triggerSinkingCinematic(newlySunkShip.name);
@@ -4620,7 +5262,7 @@
 
         if (prey) prey.alive = false;
 
-        SoundEngine.playNavalKlaxon();
+        SoundEngine.playShipSunk();
 
         // 1. Notificación global en el feed de combate
         const msg = `COMUNICADO GENERAL: ${fallenName} ha sido enviado al fondo del mar.`;
@@ -4813,6 +5455,7 @@
           renderFleetSVGs();
           renderBoardMarkers();
           updateFleetCountersAndHUD();
+          syncPlayerBoardToFirebase();
 
           if (GameState.myShips.every(s => s.sunk)) {
             GameState.missileInFlight = false;
@@ -4873,7 +5516,17 @@
         const myPlayer = GameState.players.find(p => p.id === myCallsign);
         if (myPlayer) myPlayer.alive = false;
 
-        SoundEngine.playNavalKlaxon();
+        syncPlayerBoardToFirebase();
+        if (db && GameState.roomId) {
+          try {
+            db.ref(`rooms/${GameState.roomId}/feed`).push({
+              text: `☠️ ¡La flota de ${myCallsign} ha sido enviada al fondo del mar!`,
+              ts: Date.now()
+            });
+          } catch (_) {}
+        }
+
+        SoundEngine.playRedAlert();
 
         // 1. Notificación global en el feed de combate
         showCombatFeedAnnouncement(`COMUNICADO GENERAL: ${myCallsign} ha sido enviado al fondo del mar.`, 'danger');
@@ -5186,93 +5839,87 @@
       }
 
       /* ========================================================================
-         10. LOBBY MULTIJUGADOR GRUPAL (/rooms/{roomId}) Y EMPAREJAMIENTO PAR/IMPAR
+         10. ARQUITECTURA DE SALAS: SEPARACIÓN DE ROLES (ALMIRANTE VS PARTICIPANTE)
          ======================================================================== */
-      function createOrJoinRoom(code, asHost) {
-        GameState.roomId = code.toUpperCase();
-        GameState.isHost = asHost;
-        GameState.players = [{
-          id: myCallsign,
-          name: myCallsign,
-          role: asHost ? 'HOST' : 'CMDR',
-          alive: true,
-          ships: [],
-          shotsReceived: Array.from({ length: 10 }, () => Array(10).fill(null)),
-          preyId: null,
-          hunterId: null
-        }];
+      let admiralBoardsListener = null;
+      let admiralPlayersListener = null;
+      let admiralFeedListener = null;
+      let admiralSimulationInterval = null;
+      let currentLobbyCode = null;
 
-        const joinUrl = `${window.location.origin}${window.location.pathname}?room=${GameState.roomId}`;
+      // --- ROL 1: ALMIRANTE (DIRECTOR / NO JUGADOR) ---
+      function createAdmiralRoom(code) {
+        myCallsign = 'ALMIRANTE';
+        document.getElementById('player-callsign-display').textContent = 'ALMIRANTE';
+
+        GameState.roomId = code.toUpperCase();
+        currentLobbyCode = GameState.roomId;
+        GameState.isHost = true;
+        GameState.isAdmiral = true;
+        GameState.isParticipant = false;
+        GameState.phase = 'LOBBY';
+        // El Almirante NO participa como jugador de combate
+        GameState.players = [];
+
         document.getElementById('lobby-room-code-text').textContent = GameState.roomId;
         document.getElementById('qr-fallback-code').textContent = GameState.roomId;
+        const joinUrl = `${window.location.origin}${window.location.pathname}?room=${GameState.roomId}`;
         const urlEl = document.getElementById('qr-join-url-text');
         if (urlEl) urlEl.textContent = joinUrl;
 
-        // Generar código QR de 220x220 con margen blanco limpio usando QRCode.js
+        // Generar código QR escaneable 220x220 con quiet zone blanco
         renderQRCodeToContainer(document.getElementById('qrcode-box'), GameState.roomId);
 
-        switchScreen('view-lobby');
-        document.getElementById('btn-return-menu').style.display = 'inline-flex';
+        // Inicializar banco de preguntas en Firebase para la sala
+        initFirebaseRoomQuestions(GameState.roomId, true);
 
-        // Sincronización del banco de preguntas en Firebase (/rooms/{roomId}/questions)
-        initFirebaseRoomQuestions(GameState.roomId, asHost);
-
-        // Conectar la sala en tiempo real a db.ref('rooms/' + roomId)
+        // Inicializar sala en Firebase Realtime Database
         if (db) {
           try {
             const roomRef = db.ref(`rooms/${GameState.roomId}`);
-            if (asHost) {
-              roomRef.update({
-                hostId: myCallsign,
-                players: GameState.players,
-                status: 'LOBBY',
-                updatedAt: Date.now()
-              });
+            roomRef.set({
+              roomId: GameState.roomId,
+              hostId: 'ALMIRANTE',
+              hostName: 'ALMIRANTE',
+              status: 'LOBBY',
+              players: {},
+              boards: {},
+              createdAt: Date.now(),
+              updatedAt: Date.now()
+            });
 
-              // Escuchar solicitudes de ingreso de alumnos en la sala de Firebase
-              roomRef.child('joinRequests').on('child_added', (snapshot) => {
-                const req = snapshot.val();
-                if (req && req.player && !GameState.players.some(p => p.id === req.player.id)) {
+            // Escuchar en tiempo real a los comandantes participantes que van ingresando
+            let prevCount = 0;
+            roomRef.child('players').on('value', (snapshot) => {
+              const val = snapshot.val() || {};
+              const list = Array.isArray(val) ? val.filter(Boolean) : Object.values(val);
+              // Filtrar estrictamente para excluir al Almirante del conteo y duelos
+              const newPlayers = list.filter(p => p && p.id !== 'ALMIRANTE' && p.role !== 'ALMIRANTE');
+              if (newPlayers.length > prevCount && prevCount > 0) {
+                SoundEngine.playRadarBlip();
+              }
+              prevCount = newPlayers.length;
+              GameState.players = newPlayers;
+              renderLobbyPlayers();
+            });
+
+            // Escuchar también peticiones de joinRequests por redundancia
+            roomRef.child('joinRequests').on('child_added', (snapshot) => {
+              const req = snapshot.val();
+              if (req && req.player && req.player.id !== 'ALMIRANTE') {
+                if (!GameState.players.some(p => p.id === req.player.id)) {
                   GameState.players.push(req.player);
-                  syncLobbyRoomState();
+                  renderLobbyPlayers();
                 }
-              });
-            } else {
-              // Enviar petición de ingreso a la sala en Firebase
-              roomRef.child('joinRequests').child(myCallsign).set({
-                player: GameState.players[0],
-                timestamp: Date.now()
-              });
-
-              // Sincronizar jugadores y estado de la sala desde Firebase
-              roomRef.on('value', (snapshot) => {
-                const roomData = snapshot.val();
-                if (roomData) {
-                  if (roomData.players && Array.isArray(roomData.players)) {
-                    GameState.players = roomData.players;
-                    renderLobbyPlayers();
-                  }
-                  if (roomData.status === 'DEPLOYING' && GameState.phase === 'LOBBY') {
-                    assignMultiplayerPairings();
-                    startDeploymentPhase('MULTI');
-                  }
-                }
-              });
-            }
+              }
+            });
           } catch (e) {
-            console.warn('Error en conexión de sala Firebase:', e);
+            console.warn('Error inicializando sala del Almirante en Firebase:', e);
           }
         }
 
-        if (asHost) {
-          syncLobbyRoomState();
-        } else {
-          broadcastRoomEvent({
-            type: 'JOIN_REQUEST',
-            roomId: GameState.roomId,
-            player: GameState.players[0]
-          });
-        }
+        switchScreen('view-lobby');
+        document.getElementById('btn-return-menu').style.display = 'inline-flex';
         renderLobbyPlayers();
       }
 
@@ -5280,10 +5927,12 @@
         renderLobbyPlayers();
         if (db && GameState.roomId) {
           try {
-            db.ref(`rooms/${GameState.roomId}`).update({
-              players: GameState.players,
-              updatedAt: Date.now()
+            const playersMap = {};
+            GameState.players.forEach(p => {
+              playersMap[p.id] = p;
             });
+            db.ref(`rooms/${GameState.roomId}/players`).set(playersMap);
+            db.ref(`rooms/${GameState.roomId}`).update({ updatedAt: Date.now() });
           } catch (_) {}
         }
         broadcastRoomEvent({
@@ -5297,33 +5946,45 @@
         const listEl = document.getElementById('lobby-players-list');
         const countEl = document.getElementById('lobby-player-count');
         const modeEl = document.getElementById('lobby-pairing-mode');
+        if (!listEl || !countEl || !modeEl) return;
+
         listEl.innerHTML = '';
-
         const total = GameState.players.length;
-        countEl.textContent = `${total} EN SALA`;
+        countEl.textContent = `${total} COMANDANTES`;
 
-        if (total === 1) {
-          modeEl.textContent = `/rooms/${GameState.roomId} · ESPERANDO COMANDANTES (AÑADE COMANDANTES CON EL BOTÓN)...`;
+        if (total === 0) {
+          modeEl.textContent = `/rooms/${GameState.roomId} · ESPERANDO A QUE LOS COMANDANTES ESCANEEN EL QR...`;
           modeEl.style.color = 'var(--text-muted)';
+        } else if (total === 1) {
+          modeEl.textContent = `/rooms/${GameState.roomId} · 1 COMANDANTE EN SALA · ESPERANDO AL MENOS 2 O AÑADE UN BOT`;
+          modeEl.style.color = 'var(--warning)';
         } else if (total % 2 === 0) {
-          modeEl.textContent = `/rooms/${GameState.roomId} · EMPAREJAMIENTO PAR (${total}): DUELOS CLÁSICOS INDEPENDIENTES 1 VS 1`;
+          modeEl.textContent = `/rooms/${GameState.roomId} · EMPAREJAMIENTO PAR (${total}): DUELOS DIRECTOS 1 VS 1 ENTRE PARTICIPANTES`;
           modeEl.style.color = 'var(--accent)';
         } else {
-          modeEl.textContent = `/rooms/${GameState.roomId} · EMPAREJAMIENTO IMPAR (${total}): MODO ANILLO CERRADO UNIDIRECCIONAL (CARRUSEL)`;
+          modeEl.textContent = `/rooms/${GameState.roomId} · EMPAREJAMIENTO IMPAR (${total}): MODO ANILLO CERRADO CIRCULAR ENTRE PARTICIPANTES`;
           modeEl.style.color = 'var(--warning)';
+        }
+
+        if (total === 0) {
+          const emptyMsg = document.createElement('div');
+          emptyMsg.style.cssText = 'padding:12px; text-align:center; color:var(--text-muted); font-size:12px;';
+          emptyMsg.textContent = '🛰️ Escanea el código QR desde tu móvil o pulsa "AÑADIR COMANDANTE" para simular.';
+          listEl.appendChild(emptyMsg);
+          return;
         }
 
         GameState.players.forEach((p, idx) => {
           let roleDesc = '';
-          if (total <= 1) {
-            roleDesc = 'LISTO PARA COMBATE';
+          if (total === 1) {
+            roleDesc = 'LISTO PARA COMBATE (DUELO VS IA O EN ESPERA)';
           } else if (total % 2 === 0) {
-            // A) NÚMERO PAR: Duelos clásicos independientes 1 vs 1 (1 vs 2, 3 vs 4...)
+            // A) PAR: Duelos directos 1 vs 1 entre participantes (1 vs 2, 3 vs 4...)
             const oppIdx = idx % 2 === 0 ? idx + 1 : idx - 1;
             const opp = GameState.players[oppIdx];
             roleDesc = `⚔️ DUELO 1v1 VS: ${opp ? opp.name : '---'}`;
           } else {
-            // B) NÚMERO IMPAR: Ciclo cerrado unidireccional (P1->P2->...->PN->P1)
+            // B) IMPAR: Modo anillo cerrado circular entre participantes (P1->P2->...->PN->P1)
             const preyIdx = (idx + 1) % total;
             const hunterIdx = (idx - 1 + total) % total;
             const prey = GameState.players[preyIdx];
@@ -5332,9 +5993,9 @@
           }
 
           const row = document.createElement('div');
-          row.style.cssText = 'display:flex; justify-content:space-between; align-items:center; padding:6px 8px; background:rgba(0,0,0,0.35); border-radius:4px; border:1px solid var(--grid-line);';
+          row.style.cssText = 'display:flex; justify-content:space-between; align-items:center; padding:8px 10px; background:rgba(0,0,0,0.45); border-radius:6px; border:1px solid var(--grid-line);';
           row.innerHTML = `
-            <span><strong>${idx + 1}. ${p.name}</strong> <small style="color:var(--text-muted);">[${p.role}]</small></span>
+            <span><strong style="color:#ffffff;">${idx + 1}. ${p.name}</strong> <small style="color:var(--accent);">[${p.role || 'COMANDANTE'}]</small></span>
             <span style="color:var(--accent); font-size:11px; font-weight:600;">
               ${roleDesc}
             </span>
@@ -5343,17 +6004,13 @@
         });
       }
 
-      function assignMultiplayerPairings() {
-        const total = GameState.players.length;
-        if (total <= 1) {
-          GameState.myPreyName = 'IA TÁCTICA';
-          GameState.myHunterName = 'IA TÁCTICA';
-          GameState.pairingType = '1VS1';
-          return;
-        }
+      // 3. EMPAREJAMIENTO EXCLUSIVO ENTRE PARTICIPANTES (SIN EL ALMIRANTE)
+      function assignParticipantPairings() {
+        // Filtrar estrictamente solo participantes (excluyendo al Almirante)
+        const participants = GameState.players.filter(p => p.id !== 'ALMIRANTE' && p.role !== 'ALMIRANTE');
+        const total = participants.length;
 
-        // Inicializar flotas y matrices de impacto para cada comandante si no existen
-        GameState.players.forEach((p) => {
+        participants.forEach(p => {
           p.alive = true;
           if (!p.ships || p.ships.length === 0) {
             p.ships = generateRandomFleet();
@@ -5363,36 +6020,521 @@
           }
         });
 
-        if (total % 2 === 0) {
-          // A) PAR (2, 4, 6...): Duelos clásicos independientes 1 vs 1 (1 vs 2, 3 vs 4...)
-          GameState.pairingType = '1VS1';
+        const pairingsDict = {};
+
+        if (total <= 1) {
+          if (participants[0]) {
+            participants[0].preyId = 'IA TÁCTICA';
+            participants[0].preyName = 'IA TÁCTICA';
+            participants[0].hunterId = 'IA TÁCTICA';
+            participants[0].hunterName = 'IA TÁCTICA';
+            pairingsDict[participants[0].id] = {
+              preyId: 'IA TÁCTICA',
+              preyName: 'IA TÁCTICA',
+              hunterId: 'IA TÁCTICA',
+              hunterName: 'IA TÁCTICA'
+            };
+          }
+        } else if (total % 2 === 0) {
+          // Si son 2, 4, 6...: Duelos directos 1 vs 1 entre participantes
           for (let i = 0; i < total; i += 2) {
-            const p1 = GameState.players[i];
-            const p2 = GameState.players[i + 1];
+            const p1 = participants[i];
+            const p2 = participants[i + 1];
             p1.preyId = p2.id;
+            p1.preyName = p2.name;
             p1.hunterId = p2.id;
+            p1.hunterName = p2.name;
+
             p2.preyId = p1.id;
+            p2.preyName = p1.name;
             p2.hunterId = p1.id;
+            p2.hunterName = p1.name;
+
+            pairingsDict[p1.id] = { preyId: p2.id, preyName: p2.name, hunterId: p2.id, hunterName: p2.name };
+            pairingsDict[p2.id] = { preyId: p1.id, preyName: p1.name, hunterId: p1.id, hunterName: p1.name };
           }
         } else {
-          // B) IMPAR / NON (3, 5, 7...): Ciclo cerrado unidireccional (P1->P2->...->PN->P1)
-          GameState.pairingType = 'CARRUSEL';
+          // Si son 3, 5, 7...: Modo Anillo cerrado circular entre participantes
           for (let i = 0; i < total; i++) {
-            const nextPlayer = GameState.players[(i + 1) % total];
-            const prevPlayer = GameState.players[(i - 1 + total) % total];
-            GameState.players[i].preyId = nextPlayer.id;
-            GameState.players[i].hunterId = prevPlayer.id;
+            const cur = participants[i];
+            const next = participants[(i + 1) % total];
+            const prev = participants[(i - 1 + total) % total];
+
+            cur.preyId = next.id;
+            cur.preyName = next.name;
+            cur.hunterId = prev.id;
+            cur.hunterName = prev.name;
+
+            pairingsDict[cur.id] = { preyId: next.id, preyName: next.name, hunterId: prev.id, hunterName: prev.name };
           }
         }
 
-        const myPlayer = GameState.players.find(p => p.id === myCallsign) || GameState.players[0];
-        const prey = GameState.players.find(p => p.id === myPlayer.preyId);
-        const hunter = GameState.players.find(p => p.id === myPlayer.hunterId);
+        return pairingsDict;
+      }
 
-        GameState.myPreyName = prey ? prey.name : 'CMDR-RIVAL';
-        GameState.myHunterName = hunter ? hunter.name : 'CMDR-CAZADOR';
-        GameState.enemyShips = prey ? prey.ships : generateRandomFleet();
-        GameState.enemyBoardShots = prey ? prey.shotsReceived : Array.from({ length: 10 }, () => Array(10).fill(null));
+      function launchDeploymentFromAdmiral() {
+        if (GameState.players.length === 0) {
+          alert('¡Atención Almirante! No hay participantes conectados aún en la sala. Espera a que ingresen por el QR o añade un comandante con el botón táctico.');
+          return;
+        }
+
+        const pairingsDict = assignParticipantPairings();
+        const pairingType = (GameState.players.length % 2 === 0) ? '1VS1' : 'CARRUSEL';
+
+        // Inicializar tableros iniciales de bots si existen
+        GameState.players.forEach(p => {
+          if (p.isBot && db && GameState.roomId) {
+            db.ref(`rooms/${GameState.roomId}/boards/${p.id}`).set({
+              playerId: p.id,
+              playerName: p.name,
+              alive: true,
+              role: 'COMANDANTE',
+              preyName: p.preyName,
+              hunterName: p.hunterName,
+              shipsCount: 5,
+              totalShips: 5,
+              ships: p.ships.map(s => ({
+                id: s.id, name: s.name, size: s.size, row: s.row, col: s.col, dir: s.dir,
+                hits: [], sunk: false
+              })),
+              shotsReceived: Array.from({ length: 10 }, () => Array(10).fill(null)),
+              attacksReceived: Array.from({ length: 10 }, () => Array(10).fill(null)),
+              shotsGrid: Array.from({ length: 10 }, () => Array(10).fill(null)),
+              sunkShips: [],
+              updatedAt: Date.now()
+            });
+          }
+        });
+
+        // Actualizar estado en Firebase a DEPLOYING
+        if (db && GameState.roomId) {
+          try {
+            db.ref(`rooms/${GameState.roomId}`).update({
+              status: 'DEPLOYING',
+              pairingType: pairingType,
+              pairings: pairingsDict,
+              updatedAt: Date.now()
+            });
+          } catch (e) {
+            console.warn('Error iniciando despliegue en Firebase:', e);
+          }
+        }
+
+        // Difusión en red local / BroadcastChannel
+        broadcastRoomEvent({
+          type: 'START_DEPLOYMENT',
+          roomId: GameState.roomId,
+          pairingType: pairingType,
+          pairings: pairingsDict,
+          players: GameState.players
+        });
+
+        // EL ALMIRANTE NO PARTICIPA COMO JUGADOR:
+        // No se coloca barcos ni se empareja. Su pantalla pasa al CENTRO DE COMANDO ESTRATÉGICO.
+        openAdmiralWarRoom(GameState.roomId);
+      }
+
+      // --- PANTALLA EN VIVO DEL ALMIRANTE (CENTRO DE COMANDO ESTRATÉGICO) ---
+      function openAdmiralWarRoom(roomId) {
+        GameState.phase = 'ADMIRAL_MONITOR';
+        switchScreen('view-admiral-war-room');
+
+        document.getElementById('admiral-room-code-tag').textContent = roomId;
+        document.getElementById('hud-mode-label').textContent = `CENTRO DE COMANDO · ALMIRANTE · SALA ${roomId}`;
+        document.getElementById('btn-return-menu').style.display = 'none';
+
+        // Conectar escucha en tiempo real de rooms/${roomId}/boards
+        if (db) {
+          try {
+            if (admiralBoardsListener) db.ref(`rooms/${roomId}/boards`).off('value', admiralBoardsListener);
+            if (admiralPlayersListener) db.ref(`rooms/${roomId}/players`).off('value', admiralPlayersListener);
+
+            admiralBoardsListener = (snapshot) => {
+              const boardsMap = snapshot.val() || {};
+              renderAdmiralStrategicMosaic(boardsMap);
+            };
+            db.ref(`rooms/${roomId}/boards`).on('value', admiralBoardsListener);
+
+            admiralPlayersListener = (snapshot) => {
+              const playersMap = snapshot.val() || {};
+              const list = Array.isArray(playersMap) ? playersMap.filter(Boolean) : Object.values(playersMap);
+              GameState.players = list.filter(p => p && p.id !== 'ALMIRANTE' && p.role !== 'ALMIRANTE');
+              // Renderizar mosaico con la lista actualizada
+              db.ref(`rooms/${roomId}/boards`).once('value', s => {
+                renderAdmiralStrategicMosaic(s.val() || {});
+              });
+            };
+            db.ref(`rooms/${roomId}/players`).on('value', admiralPlayersListener);
+
+            // Escuchar feed de combate para el Almirante
+            if (admiralFeedListener) db.ref(`rooms/${roomId}/feed`).off('child_added', admiralFeedListener);
+            admiralFeedListener = (snapshot) => {
+              const item = snapshot.val();
+              if (item && item.text) {
+                const feedEl = document.getElementById('admiral-feed-text');
+                if (feedEl) feedEl.textContent = `🔴 [${new Date().toLocaleTimeString()}] ${item.text}`;
+              }
+            };
+            db.ref(`rooms/${roomId}/feed`).limitToLast(1).on('child_added', admiralFeedListener);
+
+          } catch (e) {
+            console.warn('Error escuchando tableros del Almirante en Firebase:', e);
+          }
+        }
+
+        // Renderizado inicial
+        renderAdmiralStrategicMosaic({});
+
+        // Simulación periódica de combate entre bots si hay bots participando
+        if (admiralSimulationInterval) clearInterval(admiralSimulationInterval);
+        admiralSimulationInterval = setInterval(() => {
+          simulateAdmiralBotBattles();
+        }, 4000);
+      }
+
+      function renderAdmiralStrategicMosaic(boardsMap = {}) {
+        const grid = document.getElementById('admiral-mosaic-grid');
+        const activeCountEl = document.getElementById('admiral-active-count');
+        const sunkCountEl = document.getElementById('admiral-sunk-count');
+        if (!grid) return;
+
+        grid.innerHTML = '';
+        const commanders = GameState.players.filter(p => p.id !== 'ALMIRANTE' && p.role !== 'ALMIRANTE');
+
+        let activeCount = 0;
+        let sunkCount = 0;
+
+        commanders.forEach((cmdr) => {
+          const board = boardsMap[cmdr.id] || null;
+          const isAlive = board ? Boolean(board.alive) : true;
+          const shipsAlive = board && typeof board.shipsCount === 'number' ? board.shipsCount : 5;
+          const isSunk = !isAlive || shipsAlive === 0;
+
+          if (isSunk) sunkCount++;
+          else activeCount++;
+
+          const card = document.createElement('div');
+          card.className = `admiral-commander-card ${isSunk ? 'sunk' : ''}`;
+
+          // Header de la tarjeta del comandante
+          const header = document.createElement('div');
+          header.style.cssText = 'display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid rgba(0,240,255,0.2); padding-bottom:6px;';
+          header.innerHTML = `
+            <div>
+              <span style="font-size:14px; font-weight:700; color:#ffffff;">⚓ ${cmdr.name}</span>
+              <span style="font-size:10px; color:var(--text-muted); font-family:'JetBrains Mono',monospace; display:block;">ID: ${cmdr.id}</span>
+            </div>
+            <span style="font-size:11px; font-weight:700; padding:2px 8px; border-radius:4px; ${isSunk ? 'background:rgba(255,59,48,0.25); color:#ff3b30; border:1px solid #ff3b30;' : 'background:rgba(34,197,94,0.2); color:#22c55e; border:1px solid #22c55e;'}">
+              ${isSunk ? '☠️ BAJA CONFIRMADA' : '🛡️ EN COMBATE'}
+            </span>
+          `;
+          card.appendChild(header);
+
+          // Detalles tácticos: Quién ataca a quién
+          const tacticalInfo = document.createElement('div');
+          tacticalInfo.style.cssText = 'font-family:"JetBrains Mono",monospace; font-size:11px; display:flex; flex-direction:column; gap:3px;';
+          const preyName = (board && board.preyName) || cmdr.preyName || '---';
+          const hunterName = (board && board.hunterName) || cmdr.hunterName || '---';
+          tacticalInfo.innerHTML = `
+            <div style="color:var(--accent); font-weight:600;">🎯 ATACANDO A: <strong>${preyName}</strong></div>
+            <div style="color:var(--warning); font-weight:600;">🛡️ DEFENDIENDO DE: <strong>${hunterName}</strong></div>
+            <div style="color:var(--text-muted); font-size:10px;">FLOTA A FLOTE: <strong style="color:${isSunk ? 'var(--danger)' : '#22c55e'};">${shipsAlive}/5 BUQUES</strong></div>
+          `;
+          card.appendChild(tacticalInfo);
+
+          // Mini-Grid 10x10 en tiempo real con NIEBLA DE GUERRA ESTRICTA
+          const miniGrid = document.createElement('div');
+          miniGrid.className = 'admiral-mini-grid';
+
+          // El monitor del Almirante renderiza exclusivamente la balística de disparos recibidos
+          // (attacksReceived o shotsGrid o shotsReceived), NUNCA la matriz interna de barcos intactos.
+          const shotsGrid = board ? (board.attacksReceived || board.shotsGrid || board.shotsReceived) : null;
+          const sunkShipsList = board ? (board.sunkShips || (board.ships ? board.ships.filter(s => s.sunk) : [])) : [];
+
+          const isCoordinateInSunkShip = (r, c) => {
+            if (!sunkShipsList || !Array.isArray(sunkShipsList)) return false;
+            return sunkShipsList.some(sh => {
+              if (!sh || !sh.sunk) return false;
+              for (let i = 0; i < sh.size; i++) {
+                const sr = sh.dir === 'V' ? sh.row + i : sh.row;
+                const sc = sh.dir === 'H' ? sh.col + i : sh.col;
+                if (sr === r && sc === c) return true;
+              }
+              return false;
+            });
+          };
+
+          if (shotsGrid) {
+            // Renderizado balístico en tiempo real (sigilo total de flotas intactas)
+            for (let r = 0; r < 10; r++) {
+              for (let c = 0; c < 10; c++) {
+                const cell = document.createElement('div');
+                cell.className = 'admiral-mini-cell';
+
+                const shot = shotsGrid[r] ? shotsGrid[r][c] : null;
+                const isSunk = isCoordinateInSunkShip(r, c);
+
+                if (isSunk) {
+                  // BUQUE COMPLETAMENTE HUNDIDO: Casillas reveladas en rojo oscuro calcinado con icono de naufragio (☠️)
+                  cell.classList.add('sunk');
+                } else if (shot === 'hit') {
+                  // CASILLA CON IMPACTO CONFIRMADO (TOCADO): Rojo fuego/naranja brillante con efecto explosión (💥)
+                  cell.classList.add('hit');
+                } else if (shot === 'miss') {
+                  // CASILLA CON DISPARO FALLIDO (AGUA): Punto sutil de onda expansiva en agua (•)
+                  cell.classList.add('miss');
+                }
+                // NIEBLA DE GUERRA ESTRICTA:
+                // Si la casilla no tiene disparo o contiene un barco intacto, permanece en reposo (mar oscuro táctico).
+                // PROHIBIDO iluminar o pintar barcos intactos para evitar espionaje en pantallas compartidas.
+
+                miniGrid.appendChild(cell);
+              }
+            }
+          } else {
+            // En fase de despliegue o esperando primer reporte
+            const placeholder = document.createElement('div');
+            placeholder.style.cssText = 'grid-column: span 10; grid-row: span 10; display:flex; align-items:center; justify-content:center; text-align:center; color:var(--text-muted); font-size:11px; padding:10px;';
+            placeholder.innerHTML = '⏳ Posicionando buques en su dispositivo móvil...';
+            miniGrid.appendChild(placeholder);
+          }
+          card.appendChild(miniGrid);
+
+          grid.appendChild(card);
+        });
+
+        if (activeCountEl) activeCountEl.textContent = activeCount;
+        if (sunkCountEl) sunkCountEl.textContent = sunkCount;
+      }
+
+      function simulateAdmiralBotBattles() {
+        if (GameState.phase !== 'ADMIRAL_MONITOR' || !db || !GameState.roomId) return;
+        const bots = GameState.players.filter(p => p.isBot && p.alive);
+        if (bots.length === 0) return;
+
+        // Simular un disparo de un bot al azar hacia su presa
+        const bot = bots[Math.floor(Math.random() * bots.length)];
+        const target = GameState.players.find(p => p.id === bot.preyId && p.alive);
+        if (!target) return;
+
+        db.ref(`rooms/${GameState.roomId}/boards/${target.id}`).once('value', (snapshot) => {
+          const targetBoard = snapshot.val();
+          if (!targetBoard || !targetBoard.shotsReceived) return;
+
+          const available = [];
+          for (let r = 0; r < 10; r++) {
+            for (let c = 0; c < 10; c++) {
+              if (targetBoard.shotsReceived[r][c] === null) available.push({ r, c });
+            }
+          }
+          if (available.length === 0) return;
+
+          const pt = available[Math.floor(Math.random() * available.length)];
+          const hitShip = findShipAt(targetBoard.ships || [], pt.r, pt.c);
+          targetBoard.shotsReceived[pt.r][pt.c] = hitShip ? 'hit' : 'miss';
+
+          if (hitShip) {
+            if (!hitShip.hits) hitShip.hits = [];
+            hitShip.hits.push(`${pt.r},${pt.c}`);
+            if (hitShip.hits.length >= hitShip.size) {
+              hitShip.sunk = true;
+            }
+          }
+
+          const aliveShipsCount = (targetBoard.ships || []).filter(s => !s.sunk).length;
+          targetBoard.shipsCount = aliveShipsCount;
+          if (aliveShipsCount === 0) {
+            targetBoard.alive = false;
+            target.alive = false;
+            db.ref(`rooms/${GameState.roomId}/feed`).push({
+              text: `💥 ¡${target.name} ha sido enviado al fondo del mar por ${bot.name}!`,
+              ts: Date.now()
+            });
+          } else if (hitShip) {
+            db.ref(`rooms/${GameState.roomId}/feed`).push({
+              text: `🎯 ¡${bot.name} impactó un buque de ${target.name}!`,
+              ts: Date.now()
+            });
+          }
+
+          targetBoard.attacksReceived = targetBoard.shotsReceived;
+          targetBoard.shotsGrid = targetBoard.shotsReceived;
+          targetBoard.sunkShips = (targetBoard.ships || []).filter(s => s.sunk).map(s => ({
+            id: s.id, name: s.name, size: s.size, row: s.row, col: s.col, dir: s.dir, sunk: true
+          }));
+          targetBoard.updatedAt = Date.now();
+          db.ref(`rooms/${GameState.roomId}/boards/${target.id}`).set(targetBoard);
+        });
+      }
+
+      // --- ROL 2: PARTICIPANTE (INGRESO DIRECTO VÍA WEB - CERO DESCARGAS) ---
+      function initParticipantDirectJoin(targetRoomId) {
+        GameState.roomId = targetRoomId.toUpperCase();
+        GameState.isParticipant = true;
+        GameState.isHost = false;
+        GameState.isAdmiral = false;
+        GameState.phase = 'PARTICIPANT_ENTRY';
+
+        // Prohibido mostrar creación de sala, menús del instructor o nuevos QR
+        document.body.classList.add('app-participant-mode');
+        document.getElementById('btn-open-questions-bank').style.display = 'none';
+        document.getElementById('btn-return-menu').style.display = 'none';
+        document.getElementById('participant-room-code-tag').textContent = GameState.roomId;
+
+        // Sincronizar el banco de preguntas activo subido por el instructor/Almirante
+        initFirebaseRoomQuestions(GameState.roomId, false);
+
+        switchScreen('view-participant-join');
+        setTimeout(() => {
+          document.getElementById('input-participant-name')?.focus();
+        }, 150);
+      }
+
+      function joinParticipantToFleet() {
+        const input = document.getElementById('input-participant-name');
+        const rawName = input ? input.value.trim() : '';
+        if (!rawName) {
+          input?.focus();
+          return;
+        }
+
+        SoundEngine.init();
+        SoundEngine.playAuthConfirmed();
+
+        const participantName = rawName;
+        const playerId = 'CMDR_' + Date.now().toString(36) + '_' + Math.random().toString(36).substr(2, 4);
+
+        myCallsign = participantName;
+        GameState.myPlayerId = playerId;
+        GameState.participantName = participantName;
+        document.getElementById('player-callsign-display').textContent = participantName;
+
+        const participantObj = {
+          id: playerId,
+          name: participantName,
+          role: 'COMANDANTE',
+          alive: true,
+          isBot: false,
+          joinedAt: Date.now()
+        };
+
+        // Agregar a Firebase en rooms/${roomId}/players/${playerId} sin rol de Almirante
+        if (db && GameState.roomId) {
+          try {
+            db.ref(`rooms/${GameState.roomId}/players/${playerId}`).set(participantObj);
+            db.ref(`rooms/${GameState.roomId}/joinRequests/${playerId}`).set({
+              player: participantObj,
+              timestamp: Date.now()
+            });
+          } catch (e) {
+            console.warn('Error registrando participante en Firebase:', e);
+          }
+        }
+
+        // Difusión local
+        broadcastRoomEvent({
+          type: 'JOIN_REQUEST',
+          roomId: GameState.roomId,
+          player: participantObj
+        });
+
+        // Su pantalla cambia a la sala de espera táctica
+        document.getElementById('waiting-my-name').textContent = participantName;
+        document.getElementById('waiting-room-tag').textContent = GameState.roomId;
+        switchScreen('view-participant-waiting');
+
+        // Escuchar lista de comandantes conectados en la sala de espera
+        if (db && GameState.roomId) {
+          try {
+            db.ref(`rooms/${GameState.roomId}/players`).on('value', (snapshot) => {
+              const val = snapshot.val() || {};
+              const list = Array.isArray(val) ? val.filter(Boolean) : Object.values(val);
+              const participants = list.filter(p => p && p.id !== 'ALMIRANTE' && p.role !== 'ALMIRANTE');
+              renderParticipantWaitingList(participants);
+            });
+
+            // Escuchar cuando el Almirante pulse [ INICIAR DESPLIEGUE ] (status -> DEPLOYING)
+            db.ref(`rooms/${GameState.roomId}`).on('value', (snapshot) => {
+              const roomData = snapshot.val();
+              if (roomData && roomData.status === 'DEPLOYING') {
+                if (GameState.phase === 'PARTICIPANT_ENTRY' || GameState.phase === 'LOBBY' || GameState.phase === 'WAITING' || document.getElementById('view-participant-waiting').classList.contains('active')) {
+                  const pairings = roomData.pairings || {};
+                  const myPair = pairings[GameState.myPlayerId] || {};
+
+                  GameState.myPreyName = myPair.preyName || 'COMANDANTE RIVAL';
+                  GameState.myHunterName = myPair.hunterName || 'COMANDANTE CAZADOR';
+                  GameState.preyId = myPair.preyId || null;
+                  GameState.hunterId = myPair.hunterId || null;
+                  GameState.pairingType = roomData.pairingType || '1VS1';
+
+                  // Todos los participantes pasan de forma simultánea a colocar sus barcos
+                  startDeploymentPhase('MULTI');
+                }
+              }
+            });
+          } catch (e) {
+            console.warn('Error en escuchas del participante:', e);
+          }
+        }
+      }
+
+      function renderParticipantWaitingList(participants = []) {
+        const countSpan = document.getElementById('waiting-players-count');
+        const listDiv = document.getElementById('participant-waiting-list');
+        if (!listDiv) return;
+
+        listDiv.innerHTML = '';
+        if (countSpan) countSpan.textContent = participants.length;
+
+        participants.forEach((p, idx) => {
+          const row = document.createElement('div');
+          const isMe = p.id === GameState.myPlayerId;
+          row.style.cssText = `display:flex; justify-content:space-between; align-items:center; padding:5px 8px; background:${isMe ? 'rgba(0,240,255,0.15)' : 'rgba(0,0,0,0.3)'}; border-radius:4px; border:1px solid ${isMe ? 'var(--accent)' : 'var(--grid-line)'};`;
+          row.innerHTML = `
+            <span>${idx + 1}. <strong style="color:${isMe ? 'var(--accent)' : '#ffffff'};">${p.name}</strong> ${isMe ? '<small style="color:var(--accent); font-weight:700;">(TÚ)</small>' : ''}</span>
+            <span style="color:#22c55e; font-size:10px; font-weight:700;">● CONECTADO</span>
+          `;
+          listDiv.appendChild(row);
+        });
+      }
+
+      // Sincronización del tablero del participante en Firebase (rooms/${roomId}/boards/${playerId})
+      function syncPlayerBoardToFirebase() {
+        if (!db || !GameState.roomId || !GameState.myPlayerId) return;
+        try {
+          const aliveShips = GameState.myShips.filter(s => !s.sunk).length;
+          const sunkShips = GameState.myShips.filter(s => s.sunk).map(s => ({
+            id: s.id,
+            name: s.name,
+            size: s.size,
+            row: s.row,
+            col: s.col,
+            dir: s.dir,
+            sunk: true
+          }));
+
+          const boardPayload = {
+            playerId: GameState.myPlayerId,
+            playerName: myCallsign,
+            role: 'COMANDANTE',
+            alive: aliveShips > 0,
+            shipsCount: aliveShips,
+            totalShips: GameState.myShips.length,
+            preyName: GameState.myPreyName,
+            hunterName: GameState.myHunterName,
+            // Balística de combate (matriz de impactos y fallos recibidos)
+            shotsReceived: GameState.myBoardShots,
+            attacksReceived: GameState.myBoardShots,
+            shotsGrid: GameState.myBoardShots,
+            // Únicamente buques completamente hundidos (niebla de guerra estricta)
+            sunkShips: sunkShips,
+            updatedAt: Date.now()
+          };
+
+          db.ref(`rooms/${GameState.roomId}/boards/${GameState.myPlayerId}`).set(boardPayload);
+        } catch (e) {
+          console.warn('Error sincronizando tablero del participante en Firebase:', e);
+        }
       }
 
       /* ========================================================================
@@ -5509,6 +6651,9 @@
           myPlayer.shotsReceived = GameState.myBoardShots;
         }
 
+        // Sincronización en tiempo real del tablero a Firebase para el Centro Estratégico del Almirante
+        syncPlayerBoardToFirebase();
+
         document.getElementById('dock-deployment-controls').style.display = 'none';
         document.getElementById('dock-combat-controls').style.display = 'flex';
         document.getElementById('dock-spectator-controls').style.display = 'none';
@@ -5561,10 +6706,13 @@
         btn.addEventListener('click', () => applyBiomeTheme(btn.dataset.biome));
       });
 
-      document.getElementById('btn-audio-toggle').addEventListener('click', (e) => {
-        SoundEngine.enabled = !SoundEngine.enabled;
-        e.currentTarget.textContent = SoundEngine.enabled ? '🔊 AUDIO ON' : '🔇 AUDIO OFF';
+      document.getElementById('btn-audio-toggle')?.addEventListener('click', () => {
+        SoundEngine.toggleMute();
       });
+      document.getElementById('slider-master-volume')?.addEventListener('input', (e) => {
+        SoundEngine.setVolume(e.target.value);
+      });
+      SoundEngine.init();
 
       document.getElementById('btn-return-menu').addEventListener('click', () => {
         GameState.phase = 'MENU';
@@ -5584,20 +6732,70 @@
         const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
         let code = '';
         for (let i = 0; i < 6; i++) code += chars[Math.floor(Math.random() * chars.length)];
-        createOrJoinRoom(code, true);
+        createAdmiralRoom(code);
       });
 
       document.getElementById('btn-join-room').addEventListener('click', () => {
         SoundEngine.init();
         const raw = document.getElementById('input-room-code').value.trim().toUpperCase();
         const code = raw.length >= 3 ? raw.padEnd(6, 'X').slice(0, 6) : 'NVLWAR';
-        createOrJoinRoom(code, false);
+        initParticipantDirectJoin(code);
+      });
+
+      document.getElementById('btn-participant-join')?.addEventListener('click', () => {
+        joinParticipantToFleet();
+      });
+
+      document.getElementById('input-participant-name')?.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          joinParticipantToFleet();
+        }
+      });
+
+      document.getElementById('btn-admiral-finish-combat')?.addEventListener('click', () => {
+        if (admiralSimulationInterval) {
+          clearInterval(admiralSimulationInterval);
+          admiralSimulationInterval = null;
+        }
+        if (db && GameState.roomId) {
+          try {
+            db.ref(`rooms/${GameState.roomId}`).update({
+              status: 'LOBBY',
+              updatedAt: Date.now()
+            });
+          } catch (_) {}
+        }
+        broadcastRoomEvent({
+          type: 'ROOM_SYNC',
+          roomId: GameState.roomId,
+          status: 'LOBBY',
+          players: GameState.players
+        });
+        GameState.phase = 'LOBBY';
+        switchScreen('view-lobby');
+        renderLobbyPlayers();
       });
 
       document.getElementById('btn-add-bot-commander').addEventListener('click', () => {
-        const botNames = ['CMDR-VORTEX', 'CMDR-KRAKEN', 'CMDR-AEGIS', 'CMDR-TRIDENT', 'CMDR-VALKYRIE'];
-        const nextName = botNames[GameState.players.length % botNames.length] + '-' + (GameState.players.length + 1);
-        GameState.players.push({ id: nextName, name: nextName, role: 'ESCUADRÓN' });
+        SoundEngine.init();
+        SoundEngine.playAuthConfirmed();
+        const botNames = ['Carlos (Bot)', 'Sofía (Bot)', 'Fernando (Bot)', 'Valeria (Bot)', 'Mateo (Bot)', 'Diego (Bot)', 'Camila (Bot)'];
+        const botId = 'BOT_' + Math.random().toString(36).substr(2, 6).toUpperCase();
+        const nextName = botNames[GameState.players.length % botNames.length];
+        const newBotPlayer = {
+          id: botId,
+          name: nextName,
+          role: 'COMANDANTE',
+          alive: true,
+          isBot: true,
+          ships: generateRandomFleet(),
+          shotsReceived: Array.from({ length: 10 }, () => Array(10).fill(null))
+        };
+        GameState.players.push(newBotPlayer);
+        if (db && GameState.roomId) {
+          db.ref(`rooms/${GameState.roomId}/players/${botId}`).set(newBotPlayer).catch(() => {});
+        }
         syncLobbyRoomState();
       });
 
@@ -5608,22 +6806,7 @@
       });
 
       document.getElementById('btn-host-launch').addEventListener('click', () => {
-        assignMultiplayerPairings();
-        if (db && GameState.roomId) {
-          try {
-            db.ref(`rooms/${GameState.roomId}`).update({
-              status: 'DEPLOYING',
-              players: GameState.players,
-              updatedAt: Date.now()
-            });
-          } catch (_) {}
-        }
-        broadcastRoomEvent({
-          type: 'START_DEPLOYMENT',
-          roomId: GameState.roomId,
-          players: GameState.players
-        });
-        startDeploymentPhase('MULTI');
+        launchDeploymentFromAdmiral();
       });
 
       document.getElementById('btn-rotate-ship').addEventListener('click', () => {
@@ -5721,11 +6904,11 @@
         renderFleetSVGs();
       });
 
-      // Soporte de enlace directo por QR (?room=XXXXXX)
+      // Soporte de enlace directo por QR (?room=XXXXXX) - INGRESO DIRECTO PARTICIPANTE (CERO DESCARGAS)
       const urlParams = new URLSearchParams(window.location.search);
       const roomParam = urlParams.get('room');
       if (roomParam && roomParam.trim().length > 0) {
-        createOrJoinRoom(roomParam.trim().slice(0, 6), false);
+        initParticipantDirectJoin(roomParam.trim().slice(0, 6).toUpperCase());
       }
 
       // Botón de copiado rápido del enlace de la sala
