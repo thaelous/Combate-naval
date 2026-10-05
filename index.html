@@ -25,9 +25,10 @@
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <!-- Librería QRCode.js estándar vía CDN para códigos QR 100% escaneables -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-  <!-- SDKs de Firebase Compat para persistencia en Realtime Database -->
+  <!-- SDKs de Firebase Compat para persistencia en Realtime Database y Firestore -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
   <style>
     /* ==========================================================================
@@ -1920,6 +1921,109 @@
     .app-participant-mode #btn-open-questions-bank {
       display: none !important;
     }
+
+    /* ==========================================================================
+       MODAL DE ACCESO Y LICENCIAMIENTO DOCENTE OBLIGATORIO
+       ========================================================================== */
+    .teacher-auth-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 99999;
+      background: rgba(2, 8, 18, 0.95);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      box-sizing: border-box;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .teacher-auth-backdrop.visible {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .teacher-auth-box {
+      width: min(94vw, 500px);
+      background: linear-gradient(180deg, #07162c 0%, #030a14 100%);
+      border: 2px solid var(--accent);
+      border-radius: 12px;
+      box-shadow: 0 0 50px var(--accent-dim), inset 0 0 25px rgba(0, 240, 255, 0.12);
+      padding: 22px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      box-sizing: border-box;
+      max-height: 94vh;
+      overflow-y: auto;
+      position: relative;
+    }
+    .teacher-auth-tabs {
+      display: flex;
+      gap: 8px;
+      border-bottom: 1px solid var(--grid-line);
+      padding-bottom: 10px;
+    }
+    .teacher-tab-btn {
+      flex: 1;
+      background: rgba(0, 240, 255, 0.05);
+      border: 1px solid var(--grid-line);
+      color: var(--text-muted);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 9px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-align: center;
+    }
+    .teacher-tab-btn:hover {
+      color: var(--text-main);
+      background: rgba(0, 240, 255, 0.12);
+    }
+    .teacher-tab-btn.active {
+      background: var(--accent);
+      color: #040d1a;
+      border-color: var(--accent);
+      box-shadow: 0 0 14px var(--accent-dim);
+    }
+    .teacher-tab-content {
+      display: none;
+    }
+    .teacher-tab-content.active {
+      display: block;
+    }
+    .auth-feedback-banner {
+      padding: 10px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 600;
+      line-height: 1.45;
+      box-sizing: border-box;
+      display: none;
+    }
+    .auth-feedback-banner.success {
+      background: rgba(16, 185, 129, 0.22);
+      border: 1px solid #10b981;
+      color: #34d399;
+      display: block !important;
+    }
+    .auth-feedback-banner.error {
+      background: rgba(255, 59, 48, 0.24);
+      border: 1px solid #ff3b30;
+      color: #f87171;
+      display: block !important;
+    }
+    .auth-feedback-banner.info {
+      background: rgba(0, 240, 255, 0.18);
+      border: 1px solid var(--accent);
+      color: var(--accent);
+      display: block !important;
+    }
   </style>
 </head>
 <body>
@@ -1967,6 +2071,12 @@
           <input id="slider-master-volume" type="range" min="0" max="1" step="0.05" value="0.8"
             style="width:52px; height:4px; accent-color:var(--accent); cursor:pointer;" title="Volumen Maestro (0% - 100%)" aria-label="Volumen Maestro" />
         </div>
+        <span id="teacher-auth-badge" style="display:none; font-size:11px; font-family:'JetBrains Mono',monospace; color:var(--accent); background:rgba(0,240,255,0.08); border:1px solid var(--grid-line); padding:4px 8px; border-radius:4px; align-items:center; gap:5px;">
+          👨‍🏫 <strong id="teacher-auth-name">DOCENTE</strong>
+        </span>
+        <button id="btn-logout-teacher" class="tactical-btn danger" type="button" title="Cerrar Sesión Docente y Bloquear Terminal" style="display:none; padding:4px 8px; font-size:11px;">
+          🔒 SALIR
+        </button>
         <button id="btn-return-menu" class="tactical-btn" type="button" style="display:none;">
           MENÚ
         </button>
@@ -2574,6 +2684,168 @@
             <!-- Filas dinámicas -->
           </tbody>
         </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================================================================
+       MODAL DE ACCESO DOCENTE OBLIGATORIO (BLOQUEA LA APP SI NO EXISTE TOKEN)
+       ====================================================================== -->
+  <div id="teacher-auth-modal" class="teacher-auth-backdrop" role="dialog" aria-modal="true" aria-labelledby="teacher-auth-title">
+    <div class="teacher-auth-box">
+      <!-- Encabezado Táctico Militar -->
+      <div style="display:flex; align-items:center; gap:12px; border-bottom:1px solid var(--grid-line); padding-bottom:12px;">
+        <div style="width:48px; height:48px; border-radius:8px; background:rgba(0,240,255,0.12); border:1px solid var(--accent); display:flex; align-items:center; justify-content:center; font-size:24px; box-shadow:0 0 16px var(--accent-dim); flex-shrink:0;">
+          ⚓
+        </div>
+        <div style="flex:1;">
+          <h2 id="teacher-auth-title" style="margin:0; font-size:17px; color:var(--accent); letter-spacing:0.06em; font-weight:700;">
+            AUTORIZACIÓN Y LICENCIAMIENTO DOCENTE
+          </h2>
+          <p style="margin:3px 0 0; font-size:11px; font-family:'JetBrains Mono',monospace; color:var(--text-muted);">
+            SISTEMA TÁCTICO CENTRAL · CONTROL ESTRICTO DE LICENCIAS
+          </p>
+        </div>
+      </div>
+
+      <!-- Selector de Pestañas Tácticas -->
+      <div class="teacher-auth-tabs">
+        <button id="tab-btn-login" type="button" class="teacher-tab-btn active">
+          🔑 INICIAR SESIÓN
+        </button>
+        <button id="tab-btn-redeem" type="button" class="teacher-tab-btn">
+          📜 CANJEAR LICENCIA (2 PASOS)
+        </button>
+      </div>
+
+      <!-- PESTAÑA 1: INICIO DE SESIÓN -->
+      <div id="tab-content-login" class="teacher-tab-content active">
+        <p style="margin:0 0 12px; font-size:12px; color:var(--text-muted); line-height:1.45;">
+          Ingresa con tu correo y contraseña registrados. El acceso está protegido mediante <strong style="color:var(--text-main);">dispositivo único autorizado</strong> por cuenta docente.
+        </p>
+
+        <form id="form-teacher-login" onsubmit="return false;" style="display:flex; flex-direction:column; gap:12px;">
+          <div>
+            <label style="display:block; font-size:11px; font-family:'JetBrains Mono',monospace; color:var(--accent); margin-bottom:4px;">
+              CORREO ELECTRÓNICO DOCENTE:
+            </label>
+            <input type="email" id="login-teacher-email" autocomplete="username" required placeholder="profesor@instituto.edu"
+              style="width:100%; box-sizing:border-box; background:rgba(0,0,0,0.55); border:1px solid var(--grid-line); border-radius:6px; padding:10px 12px; color:var(--text-main); font-family:'JetBrains Mono',monospace; font-size:13px;" />
+          </div>
+
+          <div>
+            <label style="display:block; font-size:11px; font-family:'JetBrains Mono',monospace; color:var(--accent); margin-bottom:4px;">
+              CONTRASEÑA:
+            </label>
+            <input type="password" id="login-teacher-password" autocomplete="current-password" required placeholder="••••••••"
+              style="width:100%; box-sizing:border-box; background:rgba(0,0,0,0.55); border:1px solid var(--grid-line); border-radius:6px; padding:10px 12px; color:var(--text-main); font-family:'JetBrains Mono',monospace; font-size:13px;" />
+          </div>
+
+          <div id="login-auth-msg" class="auth-feedback-banner"></div>
+
+          <!-- Bloque de resolución de conflicto de dispositivo si aplica -->
+          <div id="login-device-conflict-box" style="display:none; background:rgba(255,59,48,0.12); border:1px solid var(--danger); border-radius:6px; padding:10px 12px; flex-direction:column; gap:8px;">
+            <div style="font-size:11px; color:#fca5a5; line-height:1.4;">
+              ¿Deseas transferir la autorización a esta terminal? Esto revocará el acceso en tu equipo anterior.
+            </div>
+            <button id="btn-force-device-transfer" type="button" class="tactical-btn warning" style="width:100%; padding:8px; font-size:11px;">
+              🔄 AUTORIZAR ESTE EQUIPO Y TRANSFERIR SESIÓN
+            </button>
+          </div>
+
+          <button id="btn-submit-login" type="submit" class="tactical-btn primary" style="width:100%; padding:12px; font-size:13px; margin-top:2px;">
+            🔓 INGRESAR AL CENTRO DE COMANDO
+          </button>
+        </form>
+      </div>
+
+      <!-- PESTAÑA 2: CANJE DE LICENCIA (2 PASOS) -->
+      <div id="tab-content-redeem" class="teacher-tab-content">
+        <!-- PASO 1: VALIDACIÓN DEL CÓDIGO -->
+        <div id="redeem-step-1">
+          <div style="background:rgba(0,240,255,0.06); border:1px solid var(--grid-line); border-radius:6px; padding:10px 12px; margin-bottom:12px;">
+            <div style="font-size:11px; font-family:'JetBrains Mono',monospace; color:var(--accent); font-weight:700;">
+              PASO 1 DE 2: VALIDACIÓN DE CÓDIGO
+            </div>
+            <div style="font-size:12px; color:var(--text-muted); margin-top:2px;">
+              Ingresa tu código de licencia para validar su autenticidad y estado de disponibilidad en Firestore.
+            </div>
+          </div>
+
+          <form id="form-validate-license" onsubmit="return false;" style="display:flex; flex-direction:column; gap:12px;">
+            <div>
+              <label style="display:block; font-size:11px; font-family:'JetBrains Mono',monospace; color:var(--accent); margin-bottom:4px;">
+                CÓDIGO DE LICENCIA / SUSCRIPCIÓN:
+              </label>
+              <input type="text" id="redeem-license-code" required placeholder="Ej: NAVAL-2026-PROF-X9"
+                style="width:100%; box-sizing:border-box; background:rgba(0,0,0,0.55); border:1px solid var(--grid-line); border-radius:6px; padding:10px 12px; color:var(--text-main); font-family:'JetBrains Mono',monospace; font-size:14px; text-transform:uppercase; letter-spacing:0.05em;" />
+            </div>
+
+            <div id="redeem-step1-msg" class="auth-feedback-banner"></div>
+
+            <button id="btn-validate-license" type="submit" class="tactical-btn primary" style="width:100%; padding:12px; font-size:13px;">
+              🔍 VERIFICAR CÓDIGO DE LICENCIA
+            </button>
+          </form>
+        </div>
+
+        <!-- PASO 2: REGISTRO DE CREDENCIALES (HABILITADO TRAS VALIDAR) -->
+        <div id="redeem-step-2" style="display:none;">
+          <div style="background:rgba(16,185,129,0.12); border:1px solid #10b981; border-radius:6px; padding:10px 12px; margin-bottom:12px; display:flex; justify-content:space-between; align-items:center;">
+            <div>
+              <div style="font-size:11px; font-family:'JetBrains Mono',monospace; color:#34d399; font-weight:700;">
+                PASO 2 DE 2: REGISTRO DOCENTE
+              </div>
+              <div style="font-size:12px; color:#e2f1ff; margin-top:2px;">
+                Licencia verificada: <strong id="verified-license-badge" style="color:var(--accent); font-family:'JetBrains Mono',monospace;">------</strong>
+              </div>
+            </div>
+            <button id="btn-change-license-code" type="button" class="tactical-btn" style="min-height:26px; height:26px; padding:2px 8px; font-size:10px;">
+              CAMBIAR
+            </button>
+          </div>
+
+          <form id="form-register-teacher" onsubmit="return false;" style="display:flex; flex-direction:column; gap:10px;">
+            <div>
+              <label style="display:block; font-size:11px; font-family:'JetBrains Mono',monospace; color:var(--accent); margin-bottom:3px;">
+                NOMBRE COMPLETO DEL PROFESOR / OFICIAL:
+              </label>
+              <input type="text" id="reg-teacher-name" required placeholder="Prof. Alejandro Ramírez"
+                style="width:100%; box-sizing:border-box; background:rgba(0,0,0,0.55); border:1px solid var(--grid-line); border-radius:6px; padding:8px 12px; color:var(--text-main); font-family:'Chakra Petch',sans-serif; font-size:13px;" />
+            </div>
+
+            <div>
+              <label style="display:block; font-size:11px; font-family:'JetBrains Mono',monospace; color:var(--accent); margin-bottom:3px;">
+                CORREO ELECTRÓNICO OFICIAL:
+              </label>
+              <input type="email" id="reg-teacher-email" autocomplete="username" required placeholder="profesor@instituto.edu"
+                style="width:100%; box-sizing:border-box; background:rgba(0,0,0,0.55); border:1px solid var(--grid-line); border-radius:6px; padding:8px 12px; color:var(--text-main); font-family:'JetBrains Mono',monospace; font-size:13px;" />
+            </div>
+
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+              <div>
+                <label style="display:block; font-size:11px; font-family:'JetBrains Mono',monospace; color:var(--accent); margin-bottom:3px;">
+                  CONTRASEÑA:
+                </label>
+                <input type="password" id="reg-teacher-password" autocomplete="new-password" required placeholder="Mínimo 6 caracteres" minlength="6"
+                  style="width:100%; box-sizing:border-box; background:rgba(0,0,0,0.55); border:1px solid var(--grid-line); border-radius:6px; padding:8px 12px; color:var(--text-main); font-family:'JetBrains Mono',monospace; font-size:13px;" />
+              </div>
+              <div>
+                <label style="display:block; font-size:11px; font-family:'JetBrains Mono',monospace; color:var(--accent); margin-bottom:3px;">
+                  CONFIRMAR CONTRASEÑA:
+                </label>
+                <input type="password" id="reg-teacher-password-confirm" autocomplete="new-password" required placeholder="Repetir contraseña" minlength="6"
+                  style="width:100%; box-sizing:border-box; background:rgba(0,0,0,0.55); border:1px solid var(--grid-line); border-radius:6px; padding:8px 12px; color:var(--text-main); font-family:'JetBrains Mono',monospace; font-size:13px;" />
+              </div>
+            </div>
+
+            <div id="redeem-step2-msg" class="auth-feedback-banner"></div>
+
+            <button id="btn-submit-register" type="submit" class="tactical-btn primary" style="width:100%; padding:12px; font-size:13px; margin-top:4px;">
+              🔥 QUEMAR CÓDIGO Y ACTIVAR CUENTA DOCENTE
+            </button>
+          </form>
+        </div>
       </div>
     </div>
   </div>
@@ -3390,10 +3662,10 @@
       };
 
       /* ========================================================================
-         3. INICIALIZACIÓN DE FIREBASE REALTIME DATABASE Y GENERADOR QR
+         3. INICIALIZACIÓN DE FIREBASE (RTDB Y FIRESTORE) Y GENERADOR QR
          ======================================================================== */
       const firebaseConfig = {
-        apiKey: "AIzaSyBFli6h70p60AWxzxWL68VX6fU9qC1gAOE",
+        apiKey: "AIzaSyBFlieh70p60AWxzxWL68VX6fU9qC1gAOE",
         authDomain: "combatenaval-2d634.firebaseapp.com",
         databaseURL: "https://combatenaval-2d634-default-rtdb.firebaseio.com",
         projectId: "combatenaval-2d634",
@@ -3411,6 +3683,505 @@
       const db = (typeof firebase !== 'undefined' && typeof firebase.database === 'function')
         ? firebase.database()
         : null;
+      const firestore = (typeof firebase !== 'undefined' && typeof firebase.firestore === 'function')
+        ? firebase.firestore()
+        : null;
+
+      /* ========================================================================
+         3.5. SISTEMA DE AUTENTICACIÓN Y LICENCIAMIENTO DOCENTE (FIRESTORE)
+         Acceso obligatorio por token, control de dispositivo único y canje en 2 pasos
+         ======================================================================== */
+      const TeacherAuth = {
+        currentDeviceId: null,
+        validatedLicenseCode: null,
+        validatedSubscriptionDocId: null,
+
+        getDeviceId() {
+          if (!this.currentDeviceId) {
+            let id = localStorage.getItem('naval_war_device_id');
+            if (!id) {
+              id = 'DEV_' + Date.now().toString(36) + '_' + Math.random().toString(36).substring(2, 8).toUpperCase();
+              localStorage.setItem('naval_war_device_id', id);
+            }
+            this.currentDeviceId = id;
+          }
+          return this.currentDeviceId;
+        },
+
+        isAuthenticated() {
+          const token = localStorage.getItem('auth_token_combatenaval');
+          return Boolean(token && token.trim().length > 0);
+        },
+
+        getTeacherData() {
+          try {
+            const raw = localStorage.getItem('auth_docente_data');
+            return raw ? JSON.parse(raw) : null;
+          } catch (_) {
+            return null;
+          }
+        },
+
+        showModal() {
+          const modal = document.getElementById('teacher-auth-modal');
+          if (modal) {
+            modal.classList.add('visible');
+            this.switchTab('login');
+          }
+        },
+
+        hideModal() {
+          const modal = document.getElementById('teacher-auth-modal');
+          if (modal) {
+            modal.classList.remove('visible');
+          }
+        },
+
+        switchTab(tab) {
+          const btnLogin = document.getElementById('tab-btn-login');
+          const btnRedeem = document.getElementById('tab-btn-redeem');
+          const contentLogin = document.getElementById('tab-content-login');
+          const contentRedeem = document.getElementById('tab-content-redeem');
+
+          if (tab === 'login') {
+            btnLogin?.classList.add('active');
+            btnRedeem?.classList.remove('active');
+            contentLogin?.classList.add('active');
+            contentRedeem?.classList.remove('active');
+            this.clearFeedback();
+          } else {
+            btnRedeem?.classList.add('active');
+            btnLogin?.classList.remove('active');
+            contentRedeem?.classList.add('active');
+            contentLogin?.classList.remove('active');
+            this.clearFeedback();
+          }
+        },
+
+        clearFeedback() {
+          const loginMsg = document.getElementById('login-auth-msg');
+          const step1Msg = document.getElementById('redeem-step1-msg');
+          const step2Msg = document.getElementById('redeem-step2-msg');
+          const conflictBox = document.getElementById('login-device-conflict-box');
+          if (loginMsg) { loginMsg.style.display = 'none'; loginMsg.className = 'auth-feedback-banner'; }
+          if (step1Msg) { step1Msg.style.display = 'none'; step1Msg.className = 'auth-feedback-banner'; }
+          if (step2Msg) { step2Msg.style.display = 'none'; step2Msg.className = 'auth-feedback-banner'; }
+          if (conflictBox) conflictBox.style.display = 'none';
+        },
+
+        showBanner(elId, msg, type = 'info') {
+          const el = document.getElementById(elId);
+          if (!el) return;
+          el.textContent = msg;
+          el.className = `auth-feedback-banner ${type}`;
+          el.style.display = 'block';
+        },
+
+        // 1. PESTAÑA DE INICIO DE SESIÓN
+        async login(email, password) {
+          if (!firestore) {
+            this.showBanner('login-auth-msg', '⚠️ Conexión con Firestore no inicializada. Reintenta en breve.', 'error');
+            return;
+          }
+
+          const btn = document.getElementById('btn-submit-login');
+          const conflictBox = document.getElementById('login-device-conflict-box');
+          if (conflictBox) conflictBox.style.display = 'none';
+
+          if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = '⏳ VALIDANDO CREDENCIALES EN FIRESTORE...';
+          }
+          this.showBanner('login-auth-msg', 'Consultando colección usuarios...', 'info');
+
+          try {
+            const emailClean = email.toLowerCase().trim();
+            const snap = await firestore.collection('usuarios')
+              .where('email', '==', emailClean)
+              .limit(1)
+              .get();
+
+            if (snap.empty) {
+              SoundEngine.playAuthDenied();
+              this.showBanner('login-auth-msg', '❌ ACCESO DENEGADO: No existe ninguna cuenta docente con este correo.', 'error');
+              if (btn) { btn.disabled = false; btn.innerHTML = '🔓 INGRESAR AL CENTRO DE COMANDO'; }
+              return;
+            }
+
+            const userDoc = snap.docs[0];
+            const userData = userDoc.data() || {};
+
+            // Validación de contraseña
+            if (userData.password !== password) {
+              SoundEngine.playAuthDenied();
+              this.showBanner('login-auth-msg', '❌ ACCESO DENEGADO: Contraseña incorrecta.', 'error');
+              if (btn) { btn.disabled = false; btn.innerHTML = '🔓 INGRESAR AL CENTRO DE COMANDO'; }
+              return;
+            }
+
+            // Validación estricta de deviceIdAutorizado (Un solo equipo activo por cuenta)
+            const myDeviceId = this.getDeviceId();
+            if (userData.deviceIdAutorizado && userData.deviceIdAutorizado !== myDeviceId) {
+              SoundEngine.playAuthDenied();
+              this.showBanner(
+                'login-auth-msg',
+                `⚠️ ACCESO BLOQUEADO POR POLÍTICA DE EQUIPO ÚNICO:\nEsta cuenta docente ya tiene un dispositivo activo autorizado (${userData.deviceIdAutorizado.substring(0, 14)}...). Solo se permite un equipo simultáneo por suscripción.`,
+                'error'
+              );
+
+              // Opción para transferir la licencia al equipo actual
+              if (conflictBox) {
+                conflictBox.style.display = 'flex';
+                const btnTransfer = document.getElementById('btn-force-device-transfer');
+                if (btnTransfer) {
+                  btnTransfer.onclick = async () => {
+                    btnTransfer.disabled = true;
+                    btnTransfer.innerHTML = '⏳ AUTORIZANDO ESTA TERMINAL...';
+                    try {
+                      await firestore.collection('usuarios').doc(userDoc.id).update({
+                        deviceIdAutorizado: myDeviceId,
+                        ultimoAcceso: firebase.firestore.FieldValue.serverTimestamp(),
+                        dispositivoActualizadoEl: firebase.firestore.FieldValue.serverTimestamp()
+                      });
+                      this.completeSuccessfulLogin(userDoc.id, userData);
+                    } catch (err) {
+                      this.showBanner('login-auth-msg', 'Error al transferir dispositivo: ' + err.message, 'error');
+                      btnTransfer.disabled = false;
+                      btnTransfer.innerHTML = '🔄 AUTORIZAR ESTE EQUIPO Y TRANSFERIR SESIÓN';
+                    }
+                  };
+                }
+              }
+
+              if (btn) { btn.disabled = false; btn.innerHTML = '🔓 INGRESAR AL CENTRO DE COMANDO'; }
+              return;
+            }
+
+            // Dispositivo autorizado o primer registro
+            await firestore.collection('usuarios').doc(userDoc.id).update({
+              deviceIdAutorizado: myDeviceId,
+              ultimoAcceso: firebase.firestore.FieldValue.serverTimestamp()
+            });
+
+            this.completeSuccessfulLogin(userDoc.id, userData);
+
+          } catch (err) {
+            console.error('Error en autenticación docente:', err);
+            SoundEngine.playAuthDenied();
+            this.showBanner('login-auth-msg', 'Error en consulta Firestore: ' + (err.message || err), 'error');
+          } finally {
+            if (btn) {
+              btn.disabled = false;
+              btn.innerHTML = '🔓 INGRESAR AL CENTRO DE COMANDO';
+            }
+          }
+        },
+
+        completeSuccessfulLogin(userId, userData) {
+          const token = 'auth_token_' + Date.now().toString(36) + '_' + Math.random().toString(36).substr(2, 8);
+          localStorage.setItem('auth_token_combatenaval', token);
+          const teacherObj = {
+            id: userId,
+            nombre: userData.nombre || userData.name || 'DOCENTE',
+            email: userData.email,
+            codigoLicencia: userData.codigoLicencia || ''
+          };
+          localStorage.setItem('auth_docente_data', JSON.stringify(teacherObj));
+
+          saveInstructorProfile(teacherObj.nombre);
+
+          SoundEngine.playAuthConfirmed();
+          this.showBanner('login-auth-msg', `✓ ¡Bienvenido Oficial ${teacherObj.nombre}! Acceso autorizado.`, 'success');
+
+          setTimeout(() => {
+            this.hideModal();
+            this.updateHeaderUI(teacherObj);
+            showCombatFeedAnnouncement(`OFICIAL DOCENTE AUTORIZADO: ${teacherObj.nombre}`);
+          }, 350);
+        },
+
+        // 2. PESTAÑA DE CANJE DE LICENCIA (PASO 1: VALIDACIÓN)
+        async validateLicenseCode(code) {
+          if (!firestore) {
+            this.showBanner('redeem-step1-msg', '⚠️ Conexión con Firestore no inicializada.', 'error');
+            return;
+          }
+
+          const cleanCode = code.trim().toUpperCase();
+          if (!cleanCode) {
+            this.showBanner('redeem-step1-msg', 'Por favor ingresa un código de licencia.', 'error');
+            return;
+          }
+
+          const btn = document.getElementById('btn-validate-license');
+          if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = '⏳ VERIFICANDO EN COLECCIÓN SUSCRIPCIONES...';
+          }
+          this.showBanner('redeem-step1-msg', 'Consultando base de datos de suscripciones...', 'info');
+
+          try {
+            let subDoc = null;
+
+            // 1. Buscar por Document ID exacto
+            const directDoc = await firestore.collection('suscripciones').doc(cleanCode).get();
+            if (directDoc.exists) {
+              subDoc = directDoc;
+            } else {
+              // 2. Buscar por query 'codigo'
+              const q1 = await firestore.collection('suscripciones').where('codigo', '==', cleanCode).limit(1).get();
+              if (!q1.empty) {
+                subDoc = q1.docs[0];
+              } else {
+                // 3. Buscar por query 'codigoLicencia'
+                const q2 = await firestore.collection('suscripciones').where('codigoLicencia', '==', cleanCode).limit(1).get();
+                if (!q2.empty) subDoc = q2.docs[0];
+              }
+            }
+
+            if (!subDoc) {
+              SoundEngine.playAuthDenied();
+              this.showBanner('redeem-step1-msg', '❌ El código de licencia no existe en el sistema de suscripciones.', 'error');
+              if (btn) { btn.disabled = false; btn.innerHTML = '🔍 VERIFICAR CÓDIGO DE LICENCIA'; }
+              return;
+            }
+
+            const data = subDoc.data() || {};
+            const isUsed = data.estado === 'canjeada' || data.estado === 'usada' || data.utilizado === true || data.usado === true || data.docenteEmail || data.usuarioId;
+
+            if (isUsed) {
+              SoundEngine.playAuthDenied();
+              this.showBanner('redeem-step1-msg', '⚠️ Este código de licencia ya ha sido canjeado y no está disponible.', 'error');
+              if (btn) { btn.disabled = false; btn.innerHTML = '🔍 VERIFICAR CÓDIGO DE LICENCIA'; }
+              return;
+            }
+
+            // Código válido y disponible
+            this.validatedLicenseCode = cleanCode;
+            this.validatedSubscriptionDocId = subDoc.id;
+
+            SoundEngine.playAuthConfirmed();
+            this.showBanner('redeem-step1-msg', '✓ ¡Código de licencia verificado y disponible!', 'success');
+
+            setTimeout(() => {
+              document.getElementById('redeem-step-1').style.display = 'none';
+              document.getElementById('redeem-step-2').style.display = 'block';
+              document.getElementById('verified-license-badge').textContent = cleanCode;
+              document.getElementById('reg-teacher-name')?.focus();
+            }, 450);
+
+          } catch (err) {
+            console.error('Error validando licencia:', err);
+            SoundEngine.playAuthDenied();
+            this.showBanner('redeem-step1-msg', 'Error al consultar suscripciones: ' + (err.message || err), 'error');
+          } finally {
+            if (btn) {
+              btn.disabled = false;
+              btn.innerHTML = '🔍 VERIFICAR CÓDIGO DE LICENCIA';
+            }
+          }
+        },
+
+        // 3. PESTAÑA DE CANJE DE LICENCIA (PASO 2: REGISTRO Y QUEMA DE CÓDIGO)
+        async registerAndBurnLicense(name, email, password, passwordConfirm) {
+          if (!this.validatedLicenseCode || !this.validatedSubscriptionDocId) {
+            this.showBanner('redeem-step2-msg', 'Por favor valida el código de licencia en el Paso 1.', 'error');
+            return;
+          }
+
+          if (password !== passwordConfirm) {
+            this.showBanner('redeem-step2-msg', 'Las contraseñas no coinciden.', 'error');
+            return;
+          }
+
+          if (password.length < 6) {
+            this.showBanner('redeem-step2-msg', 'La contraseña debe tener al menos 6 caracteres.', 'error');
+            return;
+          }
+
+          const btn = document.getElementById('btn-submit-register');
+          if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = '⏳ QUEMANDO CÓDIGO Y REGISTRANDO PROFESOR...';
+          }
+          this.showBanner('redeem-step2-msg', 'Registrando cuenta docente en Firestore...', 'info');
+
+          try {
+            const emailClean = email.toLowerCase().trim();
+            const nameClean = name.trim();
+
+            // Verificar si el correo ya existe en usuarios
+            const existing = await firestore.collection('usuarios')
+              .where('email', '==', emailClean)
+              .get();
+
+            if (!existing.empty) {
+              SoundEngine.playAuthDenied();
+              this.showBanner('redeem-step2-msg', 'Este correo ya tiene una cuenta registrada. Por favor inicia sesión.', 'error');
+              if (btn) { btn.disabled = false; btn.innerHTML = '🔥 QUEMAR CÓDIGO Y ACTIVAR CUENTA DOCENTE'; }
+              return;
+            }
+
+            // 1. Quemar el código de licencia en la colección suscripciones
+            await firestore.collection('suscripciones').doc(this.validatedSubscriptionDocId).set({
+              codigo: this.validatedLicenseCode,
+              estado: 'canjeada',
+              utilizado: true,
+              usada: true,
+              docenteEmail: emailClean,
+              docenteNombre: nameClean,
+              fechaCanje: firebase.firestore.FieldValue.serverTimestamp()
+            }, { merge: true });
+
+            // 2. Registrar al profesor en la colección usuarios
+            const currentDeviceId = this.getDeviceId();
+            const newUserRef = await firestore.collection('usuarios').add({
+              nombre: nameClean,
+              email: emailClean,
+              password: password,
+              codigoLicencia: this.validatedLicenseCode,
+              deviceIdAutorizado: currentDeviceId,
+              rol: 'DOCENTE',
+              activo: true,
+              fechaRegistro: firebase.firestore.FieldValue.serverTimestamp(),
+              ultimoAcceso: firebase.firestore.FieldValue.serverTimestamp()
+            });
+
+            // 3. Guardar sesión y activar
+            const token = 'auth_token_' + Date.now().toString(36) + '_' + Math.random().toString(36).substr(2, 8);
+            localStorage.setItem('auth_token_combatenaval', token);
+            const teacherObj = {
+              id: newUserRef.id,
+              nombre: nameClean,
+              email: emailClean,
+              codigoLicencia: this.validatedLicenseCode
+            };
+            localStorage.setItem('auth_docente_data', JSON.stringify(teacherObj));
+
+            saveInstructorProfile(nameClean);
+
+            SoundEngine.playAuthConfirmed();
+            this.showBanner('redeem-step2-msg', '✓ ¡Licencia canjeada con éxito! Cuenta docente activada.', 'success');
+
+            setTimeout(() => {
+              this.hideModal();
+              this.updateHeaderUI(teacherObj);
+              showCombatFeedAnnouncement(`NUEVA LICENCIA DOCENTE ACTIVADA: ${nameClean}`);
+            }, 550);
+
+          } catch (err) {
+            console.error('Error registrando profesor:', err);
+            SoundEngine.playAuthDenied();
+            this.showBanner('redeem-step2-msg', 'Error al procesar registro: ' + (err.message || err), 'error');
+          } finally {
+            if (btn) {
+              btn.disabled = false;
+              btn.innerHTML = '🔥 QUEMAR CÓDIGO Y ACTIVAR CUENTA DOCENTE';
+            }
+          }
+        },
+
+        // 4. CIERRE DE SESIÓN GLOBAL
+        async logout() {
+          const teacher = this.getTeacherData();
+          if (firestore && teacher && teacher.id) {
+            try {
+              // Liberar deviceIdAutorizado en Firestore
+              await firestore.collection('usuarios').doc(teacher.id).update({
+                deviceIdAutorizado: null,
+                ultimoCierreSesion: firebase.firestore.FieldValue.serverTimestamp()
+              }).catch(() => {});
+            } catch (_) {}
+          }
+
+          localStorage.removeItem('auth_token_combatenaval');
+          localStorage.removeItem('auth_docente_data');
+
+          this.updateHeaderUI(null);
+          SoundEngine.playAuthDenied();
+          this.showModal();
+          showCombatFeedAnnouncement('SESIÓN DOCENTE FINALIZADA · TERMINAL BLOQUEADA', 'danger');
+        },
+
+        updateHeaderUI(teacher) {
+          const badge = document.getElementById('teacher-auth-badge');
+          const nameEl = document.getElementById('teacher-auth-name');
+          const btnLogout = document.getElementById('btn-logout-teacher');
+
+          if (teacher && teacher.nombre) {
+            if (badge) badge.style.display = 'inline-flex';
+            if (nameEl) nameEl.textContent = teacher.nombre;
+            if (btnLogout) btnLogout.style.display = 'inline-flex';
+          } else {
+            if (badge) badge.style.display = 'none';
+            if (btnLogout) btnLogout.style.display = 'none';
+          }
+        },
+
+        init() {
+          this.getDeviceId();
+
+          // Configurar botones de pestañas
+          document.getElementById('tab-btn-login')?.addEventListener('click', () => this.switchTab('login'));
+          document.getElementById('tab-btn-redeem')?.addEventListener('click', () => this.switchTab('redeem'));
+
+          // Formulario Login
+          document.getElementById('form-teacher-login')?.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const email = document.getElementById('login-teacher-email')?.value || '';
+            const password = document.getElementById('login-teacher-password')?.value || '';
+            this.login(email, password);
+          });
+
+          // Formulario Paso 1 (Validar Licencia)
+          document.getElementById('form-validate-license')?.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const code = document.getElementById('redeem-license-code')?.value || '';
+            this.validateLicenseCode(code);
+          });
+
+          // Botón Cambiar Código
+          document.getElementById('btn-change-license-code')?.addEventListener('click', () => {
+            document.getElementById('redeem-step-2').style.display = 'none';
+            document.getElementById('redeem-step-1').style.display = 'block';
+            this.clearFeedback();
+          });
+
+          // Formulario Paso 2 (Registrar Profesor y Quemar Licencia)
+          document.getElementById('form-register-teacher')?.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const name = document.getElementById('reg-teacher-name')?.value || '';
+            const email = document.getElementById('reg-teacher-email')?.value || '';
+            const password = document.getElementById('reg-teacher-password')?.value || '';
+            const confirm = document.getElementById('reg-teacher-password-confirm')?.value || '';
+            this.registerAndBurnLicense(name, email, password, confirm);
+          });
+
+          // Botón Global de Cierre de Sesión
+          document.getElementById('btn-logout-teacher')?.addEventListener('click', () => {
+            if (confirm('¿Deseas cerrar la sesión docente en esta terminal? Se bloqueará el acceso hasta que vuelvas a autenticarte.')) {
+              this.logout();
+            }
+          });
+
+          // Verificación de acceso al iniciar la aplicación
+          const urlParams = new URLSearchParams(window.location.search);
+          const isParticipant = Boolean(urlParams.get('room'));
+
+          if (isParticipant) {
+            // Estudiantes / Participantes ingresan directo sin bloqueo de licencia docente
+            this.hideModal();
+          } else if (this.isAuthenticated()) {
+            // Docente autenticado: mostrar badge y mantener desbloqueado
+            const teacher = this.getTeacherData();
+            this.updateHeaderUI(teacher);
+            this.hideModal();
+          } else {
+            // No autenticado: BLOQUEO OBLIGATORIO DE LA APLICACIÓN
+            this.showModal();
+          }
+        }
+      };
 
       let currentQRCodeObj = null;
 
@@ -6723,11 +7494,19 @@
       });
 
       document.getElementById('btn-start-solo').addEventListener('click', () => {
+        if (!TeacherAuth.isAuthenticated()) {
+          TeacherAuth.showModal();
+          return;
+        }
         SoundEngine.init();
         startDeploymentPhase('SOLO');
       });
 
       document.getElementById('btn-create-room').addEventListener('click', () => {
+        if (!TeacherAuth.isAuthenticated()) {
+          TeacherAuth.showModal();
+          return;
+        }
         SoundEngine.init();
         const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
         let code = '';
@@ -6911,6 +7690,9 @@
         initParticipantDirectJoin(roomParam.trim().slice(0, 6).toUpperCase());
       }
 
+      // Inicializar y verificar el Sistema de Autenticación y Licenciamiento Docente
+      TeacherAuth.init();
+
       // Botón de copiado rápido del enlace de la sala
       document.getElementById('btn-copy-room-link')?.addEventListener('click', () => {
         const joinUrl = `${window.location.origin}${window.location.pathname}?room=${GameState.roomId}`;
@@ -6962,12 +7744,21 @@
       updateQuestionCountBadges();
 
       const openQBModal = () => {
+        if (!TeacherAuth.isAuthenticated()) {
+          TeacherAuth.showModal();
+          return;
+        }
         SoundEngine.init();
         // 1. GESTIÓN LOCAL TRANSPARENTE DEL INSTRUCTOR:
-        // Al abrir el gestor de preguntas, verifica si existe un identificador local en el navegador
         let profile = getInstructorProfile();
         if (!profile) {
-          // Solicitar Nombre/Callsign de Instructor una sola vez
+          const teacher = TeacherAuth.getTeacherData();
+          if (teacher && teacher.nombre) {
+            profile = saveInstructorProfile(teacher.nombre);
+          }
+        }
+        if (!profile) {
+          // Solicitar Nombre/Callsign de Instructor si no está fijado
           const setupModal = document.getElementById('instructor-setup-modal');
           if (setupModal) {
             setupModal.classList.add('visible');
