@@ -36,6 +36,9 @@
        ========================================================================== */
     :root,
     [data-theme="storm"] {
+      --tactical-primary: #00f0ff;
+      --tactical-glow: rgba(0, 240, 255, 0.25);
+      --tactical-secondary: #38bdf8;
       --bg-primary: #040d1a;
       --bg-secondary: #08182e;
       --surface-panel: rgba(7, 22, 44, 0.86);
@@ -2024,6 +2027,86 @@
       color: var(--accent);
       display: block !important;
     }
+
+    /* ==========================================================================
+       MODAL DE BRANDING CORPORATIVO Y MARCA BLANCA DINÁMICA
+       ========================================================================== */
+    #branding-config-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 94000;
+      background: rgba(2, 8, 18, 0.92);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      box-sizing: border-box;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s ease;
+    }
+    #branding-config-modal.visible {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .branding-modal-box {
+      width: min(94vw, 560px);
+      background: linear-gradient(180deg, #07162c 0%, #030a14 100%);
+      border: 2px solid var(--accent);
+      border-radius: 12px;
+      box-shadow: 0 0 50px var(--accent-dim), inset 0 0 25px rgba(0, 240, 255, 0.12);
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      box-sizing: border-box;
+      max-height: 94vh;
+      overflow-y: auto;
+    }
+    .branding-upload-dropzone {
+      border: 2px dashed var(--accent);
+      border-radius: 8px;
+      background: rgba(0, 240, 255, 0.04);
+      padding: 18px 12px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+    }
+    .branding-upload-dropzone:hover {
+      background: rgba(0, 240, 255, 0.1);
+      border-color: #ffffff;
+      box-shadow: 0 0 20px var(--accent-dim);
+    }
+    .branding-swatch-box {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: rgba(0, 0, 0, 0.4);
+      border: 1px solid var(--grid-line);
+      border-radius: 6px;
+      padding: 8px 12px;
+    }
+    .branding-swatch-preview {
+      width: 32px;
+      height: 32px;
+      border-radius: 6px;
+      border: 2px solid rgba(255, 255, 255, 0.4);
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+      flex-shrink: 0;
+      transition: background 0.2s ease;
+    }
+    .brand-logo-slot {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: opacity 0.3s ease;
+    }
   </style>
 </head>
 <body>
@@ -2038,7 +2121,10 @@
   <div id="app-shell" class="mobile-screen-wrapper">
     <!-- TOP BAR CONTRACT (Zone 1: Brand | Zone 2: Telemetry/Nav | Zone 3: Actions) -->
     <header class="top-command-bar">
-      <div class="top-bar-left">
+      <div class="top-bar-left" style="display:flex; align-items:center; gap:8px;">
+        <div id="brand-logo-container-header" class="brand-logo-slot" style="display:none; align-items:center;">
+          <img id="brand-logo-img-header" src="" alt="Logo Corporativo" style="max-height:28px; max-width:110px; object-fit:contain;" />
+        </div>
         <h1 class="brand-wordmark">COMBATE NAVAL</h1>
         <span id="mobile-fleet-counter" class="mobile-fleet-counter">0/5 BUQUES ACTIVOS</span>
       </div>
@@ -2063,6 +2149,9 @@
         </select>
         <button id="btn-open-questions-bank" class="tactical-btn" type="button" title="Gestionar Banco de Preguntas Excel">
           ⚙️ PREGUNTAS
+        </button>
+        <button id="btn-open-branding-modal" class="tactical-btn" type="button" title="Personalizar Identidad Corporativa / Logo y Paleta">
+          🎨 BRANDING
         </button>
         <div style="display:inline-flex; align-items:center; gap:6px; background:rgba(0,0,0,0.35); padding:2px 8px; border-radius:6px; border:1px solid var(--grid-line);">
           <button id="btn-audio-toggle" class="tactical-btn" type="button" title="Conmutar Audio de Batalla" style="border:none; padding:4px 6px; background:transparent;">
@@ -2127,6 +2216,21 @@
           </div>
         </div>
 
+        <!-- Módulo de Identidad Corporativa y Marca Blanca para el Instructor/Almirante -->
+        <div style="background:var(--surface-card); border:1px solid var(--grid-line); border-radius:8px; padding:12px 14px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+          <div>
+            <div style="font-size:11px; font-weight:700; color:var(--accent); font-family:'JetBrains Mono',monospace; letter-spacing:0.08em;">
+              2. CONFIGURACIÓN DE BRANDING CORPORATIVO / MARCA BLANCA
+            </div>
+            <div style="font-size:13px; color:var(--text-main); margin-top:2px;">
+              Personaliza el logotipo institucional de tu empresa o colegio y extrae la paleta cromática en tiempo real.
+            </div>
+          </div>
+          <button id="btn-menu-branding" type="button" class="tactical-btn" style="padding:8px 14px; font-size:12px;">
+            🎨 IDENTIDAD CORPORATIVA / LOGO
+          </button>
+        </div>
+
         <!-- Modos de Operación: Solitario vs IA o Multijugador Grupal QR / Firebase -->
         <div class="menu-grid">
           <div style="background:var(--surface-card); border:1px solid var(--grid-line); border-radius:8px; padding:14px; display:flex; flex-direction:column; justify-content:space-between; gap:12px;">
@@ -2175,7 +2279,10 @@
               SINCRONIZANDO NODO /rooms/...
             </p>
           </div>
-          <div style="display:flex; gap:8px;">
+          <div style="display:flex; gap:8px; flex-wrap:wrap;">
+            <button id="btn-lobby-branding" type="button" class="tactical-btn" title="Personalizar Identidad Corporativa / Logo y Paleta de la Sala">
+              🎨 BRANDING
+            </button>
             <button id="btn-add-bot-commander" type="button" class="tactical-btn" title="Añadir comandante táctico para probar modo Par (1v1) o Impar (Carrusel)">
               + AÑADIR COMANDANTE A LA SALA
             </button>
@@ -2186,6 +2293,11 @@
         <div class="menu-grid" style="align-items:center;">
           <!-- GENERADOR DE CÓDIGO QR 100% ESCANEABLE CON QRCODE.JS Y QUIET ZONE BLANCO -->
           <div style="display:flex; flex-direction:column; align-items:center; gap:10px; background:var(--surface-card); padding:16px; border-radius:8px; border:1px solid var(--grid-line); width:100%; max-width:320px; margin:0 auto;">
+            <!-- Logo corporativo en tarjeta QR si está cargado -->
+            <div id="brand-logo-container-lobby" class="brand-logo-slot" style="display:none; align-items:center; justify-content:center; max-height:48px; max-width:240px; margin-bottom:2px;">
+              <img id="brand-logo-img-lobby" src="" alt="Logo Corporativo" style="max-height:44px; max-width:220px; object-fit:contain;" />
+            </div>
+
             <!-- Contenedor con Margen Blanco Puro (Quiet Zone) de 220x220 -->
             <div style="background:#ffffff; padding:12px; border-radius:8px; box-shadow:0 0 20px rgba(0,240,255,0.3); display:flex; align-items:center; justify-content:center; width:244px; height:244px;">
               <div id="qrcode-box" style="width:220px; height:220px; display:flex; align-items:center; justify-content:center;"></div>
@@ -2242,7 +2354,11 @@
     <main id="view-participant-join" class="screen-view">
       <div class="participant-container">
         <div class="participant-card">
-          <div style="font-size:42px;">⚓</div>
+          <!-- Logo corporativo en ingreso participante -->
+          <div id="brand-logo-container-join" class="brand-logo-slot" style="display:none; align-items:center; justify-content:center; max-height:48px; max-width:200px; margin:0 auto 10px;">
+            <img id="brand-logo-img-join" src="" alt="Logo Corporativo" style="max-height:44px; max-width:180px; object-fit:contain;" />
+          </div>
+          <div style="font-size:42px;" id="participant-join-default-icon">⚓</div>
           <div>
             <div style="font-size:12px; font-weight:700; color:var(--accent); font-family:'JetBrains Mono',monospace; letter-spacing:0.12em;">
               COMBATE NAVAL · SALA <span id="participant-room-code-tag">------</span>
@@ -2276,6 +2392,10 @@
     <main id="view-participant-waiting" class="screen-view">
       <div class="participant-container">
         <div class="participant-card">
+          <!-- Logo corporativo en espera participante -->
+          <div id="brand-logo-container-waiting" class="brand-logo-slot" style="display:none; align-items:center; justify-content:center; max-height:48px; max-width:200px; margin:0 auto 10px;">
+            <img id="brand-logo-img-waiting" src="" alt="Logo Corporativo" style="max-height:44px; max-width:180px; object-fit:contain;" />
+          </div>
           <div class="participant-waiting-pulse">
             🛰️
           </div>
@@ -2319,13 +2439,18 @@
       <section class="war-room-card" style="padding:16px; max-width:100%; width:100%; box-sizing:border-box;">
         <!-- Header del Centro Estratégico -->
         <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; border-bottom:1px solid var(--grid-line); padding-bottom:12px;">
-          <div>
-            <div style="font-size:11px; font-weight:700; color:var(--accent); font-family:'JetBrains Mono',monospace; letter-spacing:0.12em;">
-              MODO DIRECTOR SUPREMO · CENTRO DE COMANDO ESTRATÉGICO
+          <div style="display:flex; align-items:center; gap:12px;">
+            <div id="brand-logo-container-warroom" class="brand-logo-slot" style="display:none; align-items:center;">
+              <img id="brand-logo-img-warroom" src="" alt="Logo Corporativo" style="max-height:36px; max-width:140px; object-fit:contain;" />
             </div>
-            <h2 style="margin:2px 0 0; font-size:clamp(18px, 2.5vw, 24px); color:#ffffff; letter-spacing:0.04em;">
-              🎖️ SALA DE OPERACIONES DEL ALMIRANTE — SALA <span id="admiral-room-code-tag" style="color:var(--accent);">------</span>
-            </h2>
+            <div>
+              <div style="font-size:11px; font-weight:700; color:var(--accent); font-family:'JetBrains Mono',monospace; letter-spacing:0.12em;">
+                MODO DIRECTOR SUPREMO · CENTRO DE COMANDO ESTRATÉGICO
+              </div>
+              <h2 style="margin:2px 0 0; font-size:clamp(18px, 2.5vw, 24px); color:#ffffff; letter-spacing:0.04em;">
+                🎖️ SALA DE OPERACIONES DEL ALMIRANTE — SALA <span id="admiral-room-code-tag" style="color:var(--accent);">------</span>
+              </h2>
+            </div>
           </div>
 
           <!-- Telemetría general de combate -->
@@ -2398,14 +2523,23 @@
           <!-- TABLERO 2: RADAR TÁCTICO ENEMIGO -->
           <section id="station-enemy-radar" class="board-station" data-mobile-hidden="true">
             <div class="station-header">
-              <span>🎯 RADAR TÁCTICO <small id="enemy-target-tag" style="color:var(--text-muted); font-weight:400;"></small></span>
+              <div style="display:flex; align-items:center; gap:6px;">
+                <span>🎯 RADAR TÁCTICO <small id="enemy-target-tag" style="color:var(--text-muted); font-weight:400;"></small></span>
+                <div id="brand-logo-container-radar" class="brand-logo-slot" style="display:none; align-items:center;">
+                  <img id="brand-logo-img-radar" src="" alt="Logo Corporativo" style="max-height:18px; max-width:75px; object-fit:contain; opacity:0.9;" />
+                </div>
+              </div>
               <span id="enemy-fleet-status-text" style="font-family:'JetBrains Mono',monospace; color:var(--danger);">5 OBJETIVOS</span>
             </div>
             <div class="tactical-grid-frame">
               <div class="coord-top-row" id="enemy-coords-top"></div>
               <div class="coord-left-col" id="enemy-coords-left"></div>
-              <div class="board-surface" id="enemy-board-surface">
+              <div class="board-surface" id="enemy-board-surface" style="position:relative;">
                 <div class="radar-sweep-cone"></div>
+                <!-- Marca de agua institucional centrada discretamente sobre el radar -->
+                <div id="brand-watermark-radar" style="display:none; position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); opacity:0.16; pointer-events:none; z-index:1; max-width:55%; max-height:55%; align-items:center; justify-content:center;">
+                  <img id="brand-watermark-img" src="" alt="Marca de Agua" style="max-width:100%; max-height:100%; object-fit:contain; filter:drop-shadow(0 0 8px var(--accent));" />
+                </div>
                 <div class="ships-svg-layer" id="enemy-ships-layer"></div>
                 <div class="cells-layer" id="enemy-cells-layer"></div>
               </div>
@@ -2846,6 +2980,98 @@
             </button>
           </form>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================================================================
+       MODAL DE BRANDING CORPORATIVO / MARCA BLANCA DINÁMICA
+       ====================================================================== -->
+  <div id="branding-config-modal" role="dialog" aria-modal="true" aria-labelledby="branding-modal-title">
+    <div class="branding-modal-box">
+      <!-- Header -->
+      <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--grid-line); padding-bottom:12px;">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <div style="font-size:26px;">🎨</div>
+          <div>
+            <h2 id="branding-modal-title" style="margin:0; font-size:18px; color:var(--accent); letter-spacing:0.04em; font-weight:700;">
+              IDENTIDAD CORPORATIVA &amp; MARCA BLANCA
+            </h2>
+            <p style="margin:2px 0 0; font-size:11px; font-family:'JetBrains Mono',monospace; color:var(--text-muted);">
+              PERSONALIZACIÓN INSTITUCIONAL · EXTRACCIÓN AUTOMÁTICA DE COLOR VÍA CANVAS
+            </p>
+          </div>
+        </div>
+        <button id="btn-close-branding-modal" type="button" class="tactical-btn" style="min-height:30px; height:30px; padding:2px 8px; font-size:12px;">
+          ✕ CERRAR
+        </button>
+      </div>
+
+      <!-- Zona de subida de archivo tipo file -->
+      <div>
+        <label style="display:block; font-size:11px; font-family:'JetBrains Mono',monospace; color:var(--accent); margin-bottom:6px; font-weight:700;">
+          [ 📁 LOGOTIPO INSTITUCIONAL (PNG, JPG, WEBP) ]:
+        </label>
+        <div id="branding-dropzone" class="branding-upload-dropzone">
+          <input type="file" id="input-branding-logo-file" accept="image/png, image/jpeg, image/webp" style="display:none;" />
+          <div style="font-size:30px;">🏢</div>
+          <div style="font-size:13px; font-weight:700; color:var(--text-main);">
+            Haz clic aquí para seleccionar el logotipo de tu institución o empresa
+          </div>
+          <div style="font-size:11px; color:var(--text-muted); font-family:'JetBrains Mono',monospace;">
+            Formatos compatibles: PNG transparente, JPG o WEBP (procesado localmente en Canvas)
+          </div>
+        </div>
+      </div>
+
+      <!-- Vista previa del logotipo y paleta extraída -->
+      <div id="branding-preview-section" style="background:rgba(0,0,0,0.45); border:1px solid var(--grid-line); border-radius:8px; padding:12px; display:flex; flex-direction:column; gap:12px;">
+        <div style="font-size:11px; font-family:'JetBrains Mono',monospace; color:var(--text-muted); display:flex; justify-content:space-between; align-items:center;">
+          <span>VISTA PREVIA DE LOGO Y EXTRACCIÓN DE PALETA</span>
+          <span id="branding-status-tag" style="color:var(--accent); font-weight:700;">SIN LOGO PERSONALIZADO</span>
+        </div>
+
+        <!-- Contenedor del logo cargado -->
+        <div style="display:flex; align-items:center; justify-content:center; min-height:64px; background:rgba(255,255,255,0.03); border-radius:6px; border:1px dashed var(--grid-line); padding:8px;">
+          <img id="branding-preview-img" src="" alt="Vista previa logo" style="max-height:54px; max-width:240px; object-fit:contain; display:none;" />
+          <span id="branding-preview-placeholder" style="font-size:12px; color:var(--text-muted); font-family:'JetBrains Mono',monospace;">
+            (Sube una imagen para extraer sus colores automáticamente)
+          </span>
+        </div>
+
+        <!-- Paleta de colores extraída -->
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+          <div class="branding-swatch-box">
+            <div id="swatch-primary" class="branding-swatch-preview" style="background:#00f0ff;"></div>
+            <div style="flex:1;">
+              <div style="font-size:10px; font-family:'JetBrains Mono',monospace; color:var(--text-muted);">COLOR PRIMARIO</div>
+              <div id="text-primary-color" style="font-family:'JetBrains Mono',monospace; font-size:13px; font-weight:700; color:#ffffff;">#00F0FF</div>
+            </div>
+            <input type="color" id="input-primary-color-picker" value="#00f0ff" title="Ajuste fino color primario" style="width:28px; height:28px; border:none; border-radius:4px; cursor:pointer; background:transparent;" />
+          </div>
+
+          <div class="branding-swatch-box">
+            <div id="swatch-secondary" class="branding-swatch-preview" style="background:#38bdf8;"></div>
+            <div style="flex:1;">
+              <div style="font-size:10px; font-family:'JetBrains Mono',monospace; color:var(--text-muted);">COLOR SECUNDARIO / ACENTO</div>
+              <div id="text-secondary-color" style="font-family:'JetBrains Mono',monospace; font-size:13px; font-weight:700; color:#ffffff;">#38BDF8</div>
+            </div>
+            <input type="color" id="input-secondary-color-picker" value="#38bdf8" title="Ajuste fino color secundario" style="width:28px; height:28px; border:none; border-radius:4px; cursor:pointer; background:transparent;" />
+          </div>
+        </div>
+      </div>
+
+      <!-- Banner de estado -->
+      <div id="branding-feedback-banner" class="auth-feedback-banner"></div>
+
+      <!-- Acciones -->
+      <div style="display:flex; gap:10px; flex-wrap:wrap;">
+        <button id="btn-save-branding" type="button" class="tactical-btn primary" style="flex:1; min-width:180px; padding:12px; font-size:13px;">
+          🚀 APLICAR Y SINCRONIZAR MARCA EN SALA
+        </button>
+        <button id="btn-reset-branding" type="button" class="tactical-btn danger" style="padding:12px; font-size:12px;">
+          🔄 RESTABLECER TEMA TÁCTICO PREDETERMINADO
+        </button>
       </div>
     </div>
   </div>
@@ -4180,6 +4406,606 @@
             // No autenticado: BLOQUEO OBLIGATORIO DE LA APLICACIÓN
             this.showModal();
           }
+        }
+      };
+
+      /* ========================================================================
+         3.5. GESTOR DE BRANDING CORPORATIVO Y MARCA BLANCA DINÁMICA
+         Extracción de paleta mediante Canvas 100x100, inyección reactiva en :root,
+         incrustación multi-pantalla y sincronización en tiempo real Firebase RTDB.
+         ======================================================================== */
+      const BrandingManager = {
+        STORAGE_KEY: 'combat_custom_branding',
+        current: {
+          logoUrl: null,
+          primaryColor: '#00F0FF',
+          secondaryColor: '#38BDF8'
+        },
+
+        init() {
+          // 1. Cargar branding guardado de localStorage si existe
+          const saved = this.loadLocal();
+          if (saved) {
+            this.current = saved;
+            this.applyBranding(saved, false);
+          }
+
+          // 2. Vincular listeners de apertura de modal
+          const modal = document.getElementById('branding-config-modal');
+          const triggerBtns = [
+            document.getElementById('btn-open-branding-modal'),
+            document.getElementById('btn-lobby-branding'),
+            document.getElementById('btn-menu-branding')
+          ];
+          triggerBtns.forEach(btn => {
+            btn?.addEventListener('click', () => this.openModal());
+          });
+
+          // Cierre de modal
+          document.getElementById('btn-close-branding-modal')?.addEventListener('click', () => this.closeModal());
+          modal?.addEventListener('click', (e) => {
+            if (e.target === modal) this.closeModal();
+          });
+          window.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && modal?.classList.contains('visible')) {
+              this.closeModal();
+            }
+          });
+
+          // 3. Zona de soltar archivos (Drag & Drop) y selector de archivos
+          const dropzone = document.getElementById('branding-dropzone');
+          const fileInput = document.getElementById('input-branding-logo-file');
+
+          dropzone?.addEventListener('click', () => {
+            fileInput?.click();
+          });
+
+          dropzone?.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropzone.classList.add('dragover');
+          });
+
+          dropzone?.addEventListener('dragleave', (e) => {
+            e.preventDefault();
+            dropzone.classList.remove('dragover');
+          });
+
+          dropzone?.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropzone.classList.remove('dragover');
+            const files = e.dataTransfer?.files;
+            if (files && files.length > 0) {
+              this.handleFileSelected(files[0]);
+            }
+          });
+
+          fileInput?.addEventListener('change', (e) => {
+            const files = e.target.files;
+            if (files && files.length > 0) {
+              this.handleFileSelected(files[0]);
+            }
+          });
+
+          // 4. Selectores de color nativos para ajuste fino manual
+          const primaryPicker = document.getElementById('input-primary-color-picker');
+          const secondaryPicker = document.getElementById('input-secondary-color-picker');
+
+          primaryPicker?.addEventListener('input', (e) => {
+            const hex = e.target.value.toUpperCase();
+            this.current.primaryColor = hex;
+            this.updateSwatches(hex, this.current.secondaryColor);
+            this.applyThemeColors(hex, this.current.secondaryColor);
+          });
+
+          secondaryPicker?.addEventListener('input', (e) => {
+            const hex = e.target.value.toUpperCase();
+            this.current.secondaryColor = hex;
+            this.updateSwatches(this.current.primaryColor, hex);
+            this.applyThemeColors(this.current.primaryColor, hex);
+          });
+
+          // 5. Botón Aplicar y Sincronizar en Sala
+          document.getElementById('btn-save-branding')?.addEventListener('click', () => {
+            this.saveAndSync();
+          });
+
+          // 6. Botón Restablecer Tema Táctico Predeterminado
+          document.getElementById('btn-reset-branding')?.addEventListener('click', () => {
+            this.resetToDefault();
+          });
+        },
+
+        openModal() {
+          const modal = document.getElementById('branding-config-modal');
+          if (!modal) return;
+          this.syncModalPreview();
+          modal.classList.add('visible');
+        },
+
+        closeModal() {
+          const modal = document.getElementById('branding-config-modal');
+          modal?.classList.remove('visible');
+        },
+
+        loadLocal() {
+          try {
+            const raw = localStorage.getItem(this.STORAGE_KEY);
+            return raw ? JSON.parse(raw) : null;
+          } catch (_) {
+            return null;
+          }
+        },
+
+        saveLocal(data) {
+          try {
+            localStorage.setItem(this.STORAGE_KEY, JSON.stringify(data));
+          } catch (_) {}
+        },
+
+        removeLocal() {
+          try {
+            localStorage.removeItem(this.STORAGE_KEY);
+          } catch (_) {}
+        },
+
+        handleFileSelected(file) {
+          if (!file || !file.type.startsWith('image/')) {
+            this.showFeedback('⚠️ Selecciona un archivo de imagen compatible (PNG, JPG o WEBP).', 'error');
+            return;
+          }
+
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            const rawDataUrl = e.target.result;
+            // Optimizar dimensiones del logo a escala web compacta (máx 360x100) para rendimiento óptimo
+            this.optimizeLogoImage(rawDataUrl, (optimizedDataUrl) => {
+              this.current.logoUrl = optimizedDataUrl;
+              this.syncModalPreview();
+
+              // Extracción automática de paleta con Canvas 100x100
+              this.extractPaletteViaCanvas(optimizedDataUrl, (prim, sec) => {
+                this.current.primaryColor = prim;
+                this.current.secondaryColor = sec;
+                this.updateSwatches(prim, sec);
+                this.applyThemeColors(prim, sec);
+                this.showFeedback(`✅ Paleta extraída con éxito: Primario (${prim}) · Secundario (${sec}). Haz clic en APLICAR para guardar.`, 'success');
+                SoundEngine.playAuthConfirmed?.();
+              });
+            });
+          };
+          reader.readAsDataURL(file);
+        },
+
+        optimizeLogoImage(dataUrl, callback) {
+          const img = new Image();
+          img.onload = () => {
+            const maxW = 360;
+            const maxH = 100;
+            let w = img.width;
+            let h = img.height;
+            if (w > maxW || h > maxH) {
+              const ratio = Math.min(maxW / w, maxH / h);
+              w = Math.round(w * ratio);
+              h = Math.round(h * ratio);
+            }
+            const canvas = document.createElement('canvas');
+            canvas.width = w;
+            canvas.height = h;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, w, h);
+            callback(canvas.toDataURL('image/png'));
+          };
+          img.src = dataUrl;
+        },
+
+        /* ======================================================================
+           EXTRACCIÓN AUTOMÁTICA DE PALETA DE COLOR MEDIANTE CANVAS (100x100 PX)
+           ====================================================================== */
+        extractPaletteViaCanvas(dataUrl, callback) {
+          const img = new Image();
+          img.crossOrigin = 'Anonymous';
+          img.onload = () => {
+            const canvas = document.createElement('canvas');
+            canvas.width = 100;
+            canvas.height = 100;
+            const ctx = canvas.getContext('2d', { willReadFrequently: true });
+            ctx.drawImage(img, 0, 0, 100, 100);
+
+            const imgData = ctx.getImageData(0, 0, 100, 100).data;
+            const colorBuckets = {};
+
+            for (let i = 0; i < imgData.length; i += 4) {
+              const r = imgData[i];
+              const g = imgData[i + 1];
+              const b = imgData[i + 2];
+              const a = imgData[i + 3];
+
+              // 1. Filtra los píxeles con alfa = 0 (transparentes o casi invisibles)
+              if (a < 30) continue;
+              // 2. Descarta los blancos extremos (r,g,b > 240)
+              if (r > 240 && g > 240 && b > 240) continue;
+              // 3. Descarta los negros puros (r,g,b < 20)
+              if (r < 20 && g < 20 && b < 20) continue;
+
+              // Cuantificar o agrupar los tonos en bins
+              const qr = Math.min(255, Math.round(r / 16) * 16);
+              const qg = Math.min(255, Math.round(g / 16) * 16);
+              const qb = Math.min(255, Math.round(b / 16) * 16);
+
+              const [h, s, l] = this.rgbToHsl(qr, qg, qb);
+              const key = `${qr},${qg},${qb}`;
+
+              if (!colorBuckets[key]) {
+                colorBuckets[key] = {
+                  r: qr, g: qg, b: qb,
+                  h, s, l,
+                  count: 0,
+                  weight: 0
+                };
+              }
+              colorBuckets[key].count++;
+              // Cuantifica ponderando saturación y brillo: favorecer tonos vibrantes sobre apagados
+              const satFactor = (s / 100) * 2.4 + 0.3;
+              const lightFactor = (l >= 20 && l <= 85) ? 1.5 : 0.6;
+              colorBuckets[key].weight += satFactor * lightFactor;
+            }
+
+            const buckets = Object.values(colorBuckets);
+            if (buckets.length === 0) {
+              callback('#00F0FF', '#38BDF8');
+              return;
+            }
+
+            // Ordenar por presencia vibrante ponderada
+            buckets.sort((a, b) => b.weight - a.weight);
+
+            // a) Color Primario: el tono vibrante con mayor presencia
+            const primaryBucket = buckets[0];
+            const primaryHex = this.rgbToHex(primaryBucket.r, primaryBucket.g, primaryBucket.b);
+
+            // b) Color Secundario/Acento: segundo tono de mayor contraste o brillo
+            let secondaryBucket = null;
+            for (let j = 1; j < buckets.length; j++) {
+              const candidate = buckets[j];
+              const hueDiff = Math.abs(candidate.h - primaryBucket.h);
+              const rgbDist = Math.sqrt(
+                Math.pow(candidate.r - primaryBucket.r, 2) +
+                Math.pow(candidate.g - primaryBucket.g, 2) +
+                Math.pow(candidate.b - primaryBucket.b, 2)
+              );
+              if (rgbDist > 48 || hueDiff > 28) {
+                secondaryBucket = candidate;
+                break;
+              }
+            }
+
+            let secondaryHex;
+            if (secondaryBucket) {
+              secondaryHex = this.rgbToHex(secondaryBucket.r, secondaryBucket.g, secondaryBucket.b);
+            } else {
+              // Si la imagen es predominantemente monocromática, calcular acento complementario armónico
+              const secHue = (primaryBucket.h + 30) % 360;
+              const secLight = Math.min(88, primaryBucket.l + 25);
+              const secRgb = this.hslToRgb(secHue, Math.max(55, primaryBucket.s), secLight);
+              secondaryHex = this.rgbToHex(secRgb[0], secRgb[1], secRgb[2]);
+            }
+
+            callback(primaryHex, secondaryHex);
+          };
+          img.src = dataUrl;
+        },
+
+        rgbToHsl(r, g, b) {
+          r /= 255; g /= 255; b /= 255;
+          const max = Math.max(r, g, b), min = Math.min(r, g, b);
+          let h = 0, s = 0, l = (max + min) / 2;
+          if (max !== min) {
+            const d = max - min;
+            s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+            switch (max) {
+              case r: h = ((g - b) / d + (g < b ? 6 : 0)) / 6; break;
+              case g: h = ((b - r) / d + 2) / 6; break;
+              case b: h = ((r - g) / d + 4) / 6; break;
+            }
+          }
+          return [Math.round(h * 360), Math.round(s * 100), Math.round(l * 100)];
+        },
+
+        hslToRgb(h, s, l) {
+          h /= 360; s /= 100; l /= 100;
+          let r, g, b;
+          if (s === 0) {
+            r = g = b = l;
+          } else {
+            const hue2rgb = (p, q, t) => {
+              if (t < 0) t += 1;
+              if (t > 1) t -= 1;
+              if (t < 1/6) return p + (q - p) * 6 * t;
+              if (t < 1/2) return q;
+              if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+              return p;
+            };
+            const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+            const p = 2 * l - q;
+            r = hue2rgb(p, q, h + 1/3);
+            g = hue2rgb(p, q, h);
+            b = hue2rgb(p, q, h - 1/3);
+          }
+          return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
+        },
+
+        rgbToHex(r, g, b) {
+          const toHex = (n) => {
+            const hex = Math.max(0, Math.min(255, n)).toString(16);
+            return hex.length === 1 ? '0' + hex : hex;
+          };
+          return `#${toHex(r)}${toHex(g)}${toHex(b)}`.toUpperCase();
+        },
+
+        hexToRgb(hex) {
+          const clean = hex.replace('#', '');
+          if (clean.length === 3) {
+            return {
+              r: parseInt(clean[0] + clean[0], 16),
+              g: parseInt(clean[1] + clean[1], 16),
+              b: parseInt(clean[2] + clean[2], 16)
+            };
+          }
+          if (clean.length === 6) {
+            return {
+              r: parseInt(clean.substring(0, 2), 16),
+              g: parseInt(clean.substring(2, 4), 16),
+              b: parseInt(clean.substring(4, 6), 16)
+            };
+          }
+          return null;
+        },
+
+        /* ======================================================================
+           INYECCIÓN DINÁMICA DE ESTILOS CSS EN VIVO EN :root
+           ====================================================================== */
+        applyThemeColors(colorPrimario, colorSecundario) {
+          if (!colorPrimario) colorPrimario = '#00F0FF';
+          if (!colorSecundario) colorSecundario = '#38BDF8';
+
+          const rgb = this.hexToRgb(colorPrimario) || { r: 0, g: 240, b: 255 };
+          const colorPrimarioGlow = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.28)`;
+          const colorPrimarioLine = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.28)`;
+
+          // Modifica las variables CSS globales en :root
+          document.documentElement.style.setProperty('--tactical-primary', colorPrimario);
+          document.documentElement.style.setProperty('--tactical-glow', colorPrimarioGlow);
+          document.documentElement.style.setProperty('--tactical-secondary', colorSecundario);
+
+          // Actualiza de inmediato bordes neón, títulos tácticos, botones y cuadrículas
+          document.documentElement.style.setProperty('--accent', colorPrimario);
+          document.documentElement.style.setProperty('--accent-strong', colorSecundario);
+          document.documentElement.style.setProperty('--accent-dim', colorPrimarioGlow);
+          document.documentElement.style.setProperty('--board-border', colorPrimario);
+          document.documentElement.style.setProperty('--grid-line', colorPrimarioLine);
+          document.documentElement.style.setProperty('--grid-glow', colorPrimarioGlow);
+        },
+
+        updateSwatches(prim, sec) {
+          const swatchPrim = document.getElementById('swatch-primary');
+          const swatchSec = document.getElementById('swatch-secondary');
+          const txtPrim = document.getElementById('text-primary-color');
+          const txtSec = document.getElementById('text-secondary-color');
+          const pickPrim = document.getElementById('input-primary-color-picker');
+          const pickSec = document.getElementById('input-secondary-color-picker');
+
+          if (swatchPrim) swatchPrim.style.background = prim;
+          if (swatchSec) swatchSec.style.background = sec;
+          if (txtPrim) txtPrim.textContent = prim.toUpperCase();
+          if (txtSec) txtSec.textContent = sec.toUpperCase();
+          if (pickPrim) pickPrim.value = prim;
+          if (pickSec) pickSec.value = sec;
+        },
+
+        syncModalPreview() {
+          const previewImg = document.getElementById('branding-preview-img');
+          const placeholder = document.getElementById('branding-preview-placeholder');
+          const statusTag = document.getElementById('branding-status-tag');
+
+          if (this.current.logoUrl) {
+            if (previewImg) {
+              previewImg.src = this.current.logoUrl;
+              previewImg.style.display = 'block';
+            }
+            if (placeholder) placeholder.style.display = 'none';
+            if (statusTag) {
+              statusTag.textContent = 'LOGO CARGADO · PALETA ACTIVA';
+              statusTag.style.color = 'var(--accent)';
+            }
+          } else {
+            if (previewImg) {
+              previewImg.src = '';
+              previewImg.style.display = 'none';
+            }
+            if (placeholder) placeholder.style.display = 'block';
+            if (statusTag) {
+              statusTag.textContent = 'SIN LOGO PERSONALIZADO';
+              statusTag.style.color = 'var(--text-muted)';
+            }
+          }
+
+          this.updateSwatches(this.current.primaryColor, this.current.secondaryColor);
+        },
+
+        /* ======================================================================
+           INCLUSIÓN VISUAL DEL LOGO EN LAS PANTALLAS (ALMIRANTE Y MÓVIL PARTICIPANTE)
+           ====================================================================== */
+        updateVisualLogos(logoUrl) {
+          const slots = [
+            { container: 'brand-logo-container-header', img: 'brand-logo-img-header', mode: 'inline-flex' },
+            { container: 'brand-logo-container-lobby', img: 'brand-logo-img-lobby', mode: 'flex' },
+            { container: 'brand-logo-container-join', img: 'brand-logo-img-join', mode: 'flex' },
+            { container: 'brand-logo-container-waiting', img: 'brand-logo-img-waiting', mode: 'flex' },
+            { container: 'brand-logo-container-radar', img: 'brand-logo-img-radar', mode: 'inline-flex' },
+            { container: 'brand-watermark-radar', img: 'brand-watermark-img', mode: 'flex' },
+            { container: 'brand-logo-container-warroom', img: 'brand-logo-img-warroom', mode: 'inline-flex' }
+          ];
+
+          const joinIcon = document.getElementById('participant-join-default-icon');
+
+          if (logoUrl) {
+            slots.forEach(slot => {
+              const contEl = document.getElementById(slot.container);
+              const imgEl = document.getElementById(slot.img);
+              if (contEl && imgEl) {
+                imgEl.src = logoUrl;
+                contEl.style.display = slot.mode;
+              }
+            });
+            if (joinIcon) joinIcon.style.display = 'none';
+          } else {
+            slots.forEach(slot => {
+              const contEl = document.getElementById(slot.container);
+              const imgEl = document.getElementById(slot.img);
+              if (contEl && imgEl) {
+                imgEl.src = '';
+                contEl.style.display = 'none';
+              }
+            });
+            if (joinIcon) joinIcon.style.display = 'block';
+          }
+        },
+
+        applyBranding(brandingData, saveToLocal = true) {
+          if (!brandingData) return;
+          const logoUrl = brandingData.logoUrl || null;
+          const primary = brandingData.primaryColor || '#00F0FF';
+          const secondary = brandingData.secondaryColor || '#38BDF8';
+
+          this.current = {
+            logoUrl,
+            primaryColor: primary,
+            secondaryColor: secondary
+          };
+
+          this.applyThemeColors(primary, secondary);
+          this.updateVisualLogos(logoUrl);
+
+          if (saveToLocal) {
+            this.saveLocal(this.current);
+          }
+        },
+
+        /* ======================================================================
+           SINCRONIZACIÓN MULTIJUGADOR EN FIREBASE REALTIME DATABASE
+           ====================================================================== */
+        saveAndSync() {
+          this.saveLocal(this.current);
+          this.applyThemeColors(this.current.primaryColor, this.current.secondaryColor);
+          this.updateVisualLogos(this.current.logoUrl);
+
+          // Sincronizar en Firebase Realtime Database para la sala activa
+          if (db && GameState && GameState.roomId) {
+            try {
+              db.ref(`rooms/${GameState.roomId}/branding`).set({
+                logoUrl: this.current.logoUrl || '',
+                primaryColor: this.current.primaryColor,
+                secondaryColor: this.current.secondaryColor,
+                updatedAt: Date.now()
+              });
+            } catch (err) {
+              console.warn('Error sincronizando branding en Firebase:', err);
+            }
+          }
+
+          this.showFeedback('🚀 ¡Identidad Corporativa aplicada y sincronizada en tiempo real!', 'success');
+          SoundEngine.playAuthConfirmed?.();
+          setTimeout(() => {
+            this.closeModal();
+          }, 1100);
+        },
+
+        resetToDefault(saveToLocal = true) {
+          this.current = {
+            logoUrl: null,
+            primaryColor: '#00F0FF',
+            secondaryColor: '#38BDF8'
+          };
+
+          if (saveToLocal) {
+            this.removeLocal();
+          }
+
+          // Eliminar variables sobreescritas inline en :root para restaurar el tema táctico
+          document.documentElement.style.removeProperty('--tactical-primary');
+          document.documentElement.style.removeProperty('--tactical-glow');
+          document.documentElement.style.removeProperty('--tactical-secondary');
+          document.documentElement.style.removeProperty('--accent');
+          document.documentElement.style.removeProperty('--accent-strong');
+          document.documentElement.style.removeProperty('--accent-dim');
+          document.documentElement.style.removeProperty('--board-border');
+          document.documentElement.style.removeProperty('--grid-line');
+          document.documentElement.style.removeProperty('--grid-glow');
+
+          this.updateVisualLogos(null);
+          this.syncModalPreview();
+
+          // Sincronizar reseteo en Firebase si hay una sala activa
+          if (db && GameState && GameState.roomId) {
+            try {
+              db.ref(`rooms/${GameState.roomId}/branding`).set({
+                logoUrl: '',
+                primaryColor: '#00F0FF',
+                secondaryColor: '#38BDF8',
+                updatedAt: Date.now()
+              });
+            } catch (_) {}
+          }
+
+          this.showFeedback('🔄 Tema táctico predeterminado restablecido correctamente.', 'info');
+          SoundEngine.playAuthConfirmed?.();
+        },
+
+        listenRoomBranding(roomId) {
+          if (!db || !roomId) return;
+          try {
+            db.ref(`rooms/${roomId}/branding`).on('value', (snapshot) => {
+              const data = snapshot.val();
+              if (data && (data.primaryColor || data.logoUrl)) {
+                this.applyBranding({
+                  logoUrl: data.logoUrl || null,
+                  primaryColor: data.primaryColor || '#00F0FF',
+                  secondaryColor: data.secondaryColor || '#38BDF8'
+                }, false);
+              } else {
+                this.resetToDefault(false);
+              }
+            });
+          } catch (err) {
+            console.warn('Error escuchando branding en sala:', err);
+          }
+        },
+
+        syncCurrentToRoom(roomId) {
+          if (!db || !roomId) return;
+          const current = this.loadLocal() || this.current;
+          if (current && (current.logoUrl || current.primaryColor !== '#00F0FF')) {
+            try {
+              db.ref(`rooms/${roomId}/branding`).set({
+                logoUrl: current.logoUrl || '',
+                primaryColor: current.primaryColor,
+                secondaryColor: current.secondaryColor,
+                updatedAt: Date.now()
+              });
+            } catch (_) {}
+          }
+        },
+
+        showFeedback(msg, type = 'info') {
+          const banner = document.getElementById('branding-feedback-banner');
+          if (!banner) return;
+          banner.textContent = msg;
+          banner.className = `auth-feedback-banner visible ${type}`;
+          setTimeout(() => {
+            if (banner.textContent === msg) {
+              banner.className = 'auth-feedback-banner';
+            }
+          }, 4500);
         }
       };
 
@@ -6644,6 +7470,9 @@
         // Inicializar banco de preguntas en Firebase para la sala
         initFirebaseRoomQuestions(GameState.roomId, true);
 
+        // Sincronizar branding corporativo guardado del instructor a la sala en Firebase
+        BrandingManager.syncCurrentToRoom(GameState.roomId);
+
         // Inicializar sala en Firebase Realtime Database
         if (db) {
           try {
@@ -7154,6 +7983,9 @@
 
         // Sincronizar el banco de preguntas activo subido por el instructor/Almirante
         initFirebaseRoomQuestions(GameState.roomId, false);
+
+        // Escuchar y sincronizar automáticamente la identidad corporativa / branding de la sala
+        BrandingManager.listenRoomBranding(GameState.roomId);
 
         switchScreen('view-participant-join');
         setTimeout(() => {
@@ -7692,6 +8524,9 @@
 
       // Inicializar y verificar el Sistema de Autenticación y Licenciamiento Docente
       TeacherAuth.init();
+
+      // Inicializar el Sistema de Branding Corporativo y Marca Blanca Dinámica
+      BrandingManager.init();
 
       // Botón de copiado rápido del enlace de la sala
       document.getElementById('btn-copy-room-link')?.addEventListener('click', () => {
